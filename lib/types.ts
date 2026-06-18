@@ -13,7 +13,16 @@ export type Outcome =
   | "meeting_booked"
   | "no_response"
   | "resolved"
-  | "unknown";
+  | "unknown"
+  | "callback_requested"
+  | "agent_transfer"
+  | "escalated"
+  | "voicemail_left"
+  | "wrong_number"
+  | "do_not_call"
+  | "language_barrier"
+  | "partial_info"
+  | "follow_up_scheduled";
 
 export type CallStatus =
   | "completed"
@@ -59,18 +68,27 @@ export interface Conversation {
   stats: ConversationStats;
   outcome: Outcome[];
   postCallAnalysis: Record<string, string | number | boolean>;
-  contextVariables: Record<string, string | number>;
+  contextVariables: Record<string, string | number | boolean>;
 }
 
 // ---------------------------------------------------------------------------
 // Agent registry — drives the agent multi-select & dynamic conditions
 // ---------------------------------------------------------------------------
 
+// Agent-dependent analysis/context fields can be numerous and typed.
+export type FieldType = "string" | "number" | "boolean" | "enum" | "date";
+
+export interface FieldDef {
+  key: string;
+  type: FieldType;
+  values?: string[]; // allowed options for enum
+}
+
 export interface AgentDef {
   name: string;
   versions: string[];
-  postCall: string[];
-  context: string[];
+  postCall: FieldDef[];
+  context: FieldDef[];
 }
 
 // ---------------------------------------------------------------------------
@@ -131,15 +149,20 @@ export type ConditionField =
   | "postCall"
   | "context";
 
+// How a dynamic (post-call/context) field is matched — user-selectable.
+export type MatchMode = "specific" | "text" | "number" | "boolean" | "date";
+
 export interface Condition {
   id: string; // unique instance key
   field: ConditionField;
   key?: string; // for postCall/context: which dynamic key
+  vtype?: FieldType; // native value type for dynamic fields
+  mode?: MatchMode; // chosen match mode for dynamic fields
   // value carriers (only the relevant one is used per field)
   agents?: AgentSelection;
   values?: string[];
   num?: NumericFilter;
-  text?: string;
+  text?: string; // string contains; boolean "true"/"false"; date "from|to"
 }
 
 export interface FilterState {
@@ -185,6 +208,15 @@ export const OUTCOMES: Outcome[] = [
   "meeting_booked",
   "no_response",
   "unknown",
+  "callback_requested",
+  "agent_transfer",
+  "escalated",
+  "voicemail_left",
+  "wrong_number",
+  "do_not_call",
+  "language_barrier",
+  "partial_info",
+  "follow_up_scheduled",
 ];
 
 export const CALL_STATUSES: CallStatus[] = [

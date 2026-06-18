@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Calendar, Filter as FunnelIcon } from "lucide-react";
 import { Popover } from "./Popover";
 import { ToolbarButton } from "./ToolbarButton";
@@ -21,7 +21,6 @@ interface ToolbarProps {
   filters: FilterState;
   dispatch: React.Dispatch<FilterAction>;
   drawerBadge: number;
-  matchCount: number;
   total: number;
 }
 
@@ -43,7 +42,6 @@ export function Toolbar({
   filters,
   dispatch,
   drawerBadge,
-  matchCount,
   total,
 }: ToolbarProps) {
   const dateActive = !!filters.date.preset;
@@ -73,24 +71,15 @@ export function Toolbar({
       to: td ? `${td}T${tt}` : null,
     });
 
-  // Filter dropdown — anchored to the Filter button, dismiss on outside-click/Esc
+  // Filter modal open state (dismiss on Escape)
   const [filterOpen, setFilterOpen] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!filterOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node))
-        setFilterOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setFilterOpen(false);
     };
-    document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [filterOpen]);
 
   return (
@@ -253,28 +242,25 @@ export function Toolbar({
           )}
         </Popover>
 
-        {/* Filter dropdown trigger with active-count badge */}
-        <div className="relative" ref={filterRef}>
-          <ToolbarButton
-            icon={<FunnelIcon size={14} />}
-            label="Filter"
-            active={drawerBadge > 0}
-            badge={drawerBadge}
-            open={filterOpen}
-            chevron={false}
-            onClick={() => setFilterOpen((o) => !o)}
-          />
-          {filterOpen && (
-            <FilterPopup
-              close={() => setFilterOpen(false)}
-              filters={filters}
-              dispatch={dispatch}
-              matchCount={matchCount}
-              total={total}
-            />
-          )}
-        </div>
+        {/* Filter modal trigger with active-count badge */}
+        <ToolbarButton
+          icon={<FunnelIcon size={14} />}
+          label="Filter"
+          active={drawerBadge > 0}
+          badge={drawerBadge}
+          open={filterOpen}
+          chevron={false}
+          onClick={() => setFilterOpen(true)}
+        />
       </div>
+
+      <FilterPopup
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        filters={filters}
+        dispatch={dispatch}
+        total={total}
+      />
     </div>
   );
 }

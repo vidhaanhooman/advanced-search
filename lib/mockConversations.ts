@@ -1,27 +1,91 @@
-import type { AgentDef, Conversation } from "./types";
+import type { AgentDef, Conversation, FieldDef } from "./types";
 
 // ---------------------------------------------------------------------------
-// Agent registry — used to populate the agent multi-select & dynamic fields
+// Agent registry — agent-dependent analysis/context fields are typed and can be
+// numerous (these lists simulate a backend field schema per agent).
 // ---------------------------------------------------------------------------
+
+const f = (key: string, type: FieldDef["type"], values?: string[]): FieldDef => ({ key, type, values });
+
+const SENTIMENT = ["positive", "neutral", "negative"];
+
+// A deliberately large post-call schema to demonstrate scale (search-to-add).
+const DEBT_POSTCALL: FieldDef[] = [
+  f("promise_to_pay", "boolean"),
+  f("objection_raised", "boolean"),
+  f("sentiment", "enum", SENTIMENT),
+  f("agent_callback", "boolean"),
+  f("agent_visit_status", "enum", ["scheduled", "completed", "missed", "none"]),
+  f("appointment_date", "date"),
+  f("appointment_time", "string"),
+  f("additional_requirements", "string"),
+  f("age", "number"),
+  f("bonus_committed", "boolean"),
+  f("amount_committed", "number"),
+  f("payment_method", "enum", ["upi", "card", "cash", "bank_transfer"]),
+  f("language", "enum", ["en", "hi", "ta", "te"]),
+  f("escalation_needed", "boolean"),
+  f("followup_required", "boolean"),
+  f("dispute_raised", "boolean"),
+  f("contact_quality", "enum", ["good", "fair", "poor"]),
+  f("resolution_status", "enum", ["resolved", "pending", "unresolved"]),
+  f("next_action", "string"),
+  f("ptp_date", "date"),
+  f("ptp_amount", "number"),
+  f("risk_score", "number"),
+  f("compliance_flag", "boolean"),
+  f("call_summary", "string"),
+];
+
+const DEBT_CONTEXT: FieldDef[] = [
+  f("due_amount", "number"),
+  f("customer_name", "string"),
+  f("language", "enum", ["en", "hi", "ta", "te"]),
+  f("region", "enum", ["North", "South", "East", "West"]),
+  f("account_id", "string"),
+  f("days_past_due", "number"),
+  f("loan_type", "enum", ["personal", "auto", "home", "credit_card"]),
+  f("last_payment_date", "date"),
+];
 
 export const AGENTS: AgentDef[] = [
   {
     name: "Debt Collection Pitch Agent",
-    versions: ["v1", "v2", "v3"],
-    postCall: ["Promise to pay", "Objection raised", "Sentiment"],
-    context: ["due_amount", "customer_name", "language"],
+    versions: [
+      "v1",
+      "v2",
+      "v3_rerank_2024q4_hindi_pilot",
+      "v4_beta",
+      "v5_canary_2025q1",
+      "v6_multilingual",
+      "v7_rerank_v2",
+      "v8_objection_tuned",
+      "v9_prod_2025q2",
+    ],
+    postCall: DEBT_POSTCALL,
+    context: DEBT_CONTEXT,
   },
   {
     name: "Debt Collection Outbound Agent",
     versions: ["v1"],
-    postCall: ["Callback requested", "Sentiment"],
-    context: ["due_amount", "region"],
+    postCall: [
+      f("callback_requested", "boolean"),
+      f("sentiment", "enum", SENTIMENT),
+      f("best_time_to_call", "string"),
+      f("amount_committed", "number"),
+    ],
+    context: [f("due_amount", "number"), f("region", "enum", ["North", "South", "East", "West"])],
   },
   {
     name: "Careers_360 - Tech college predictor",
     versions: ["v1"],
-    postCall: ["Lead quality", "Course interest"],
-    context: ["exam_score", "target_branch"],
+    postCall: [
+      f("lead_quality", "enum", ["low", "medium", "high"]),
+      f("course_interest", "enum", ["CSE", "ECE", "ME", "CE"]),
+      f("counselling_booked", "boolean"),
+      f("budget", "number"),
+    ],
+    context: [f("exam_score", "number"), f("target_branch", "enum", ["CSE", "ECE", "ME", "CE"])],
   },
 ];
 
@@ -35,6 +99,36 @@ export function agentDef(name: string): AgentDef | undefined {
   return AGENTS.find((a) => a.name === name);
 }
 
+// Deterministic value generation so every field actually filters (no real backend).
+function hashStr(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function genValue(field: FieldDef, seed: string): string | number | boolean {
+  const h = hashStr(`${seed}:${field.key}`);
+  switch (field.type) {
+    case "boolean":
+      return h % 2 === 0;
+    case "number":
+      return h % 100;
+    case "enum":
+      return field.values![h % field.values!.length];
+    case "date":
+      return new Date(Date.UTC(2026, 5, 1) + (h % 40) * 86_400_000).toISOString().slice(0, 10);
+    default:
+      return `${field.key}_${h % 6}`;
+  }
+}
+function genRecord(fields: FieldDef[], seed: string): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  for (const fd of fields) out[fd.key] = genValue(fd, seed);
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Mock conversations — fixed timestamps relative to a stable anchor so the
 // date presets are demonstrable without depending on the real clock.
@@ -46,14 +140,14 @@ const daysAgo = (d: number) => hoursAgo(d * 24);
 
 export const NOW = ANCHOR;
 
-export const MOCK_CONVERSATIONS: Conversation[] = [
+const RAW_CONVERSATIONS: Conversation[] = [
   {
     document_id: "CPgQJqDlImyXpHs",
     beginTimestamp: hoursAgo(2),
     type: "web",
     agent: "Debt Collection Pitch Agent",
     agentSlug: SLUG["Debt Collection Pitch Agent"],
-    version: "v3",
+    version: "v3_rerank_2024q4_hindi_pilot",
     callInfo: { type: "web", campaign: "CMP-9001", task: "TSK-4410", attempt: 1 },
     duration: 172,
     stats: { turns: 17, latency: { turn: { avg: 820 } } },
@@ -67,7 +161,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     type: "call",
     agent: "Debt Collection Pitch Agent",
     agentSlug: SLUG["Debt Collection Pitch Agent"],
-    version: "v3",
+    version: "v3_rerank_2024q4_hindi_pilot",
     callInfo: {
       type: "call",
       direction: "outbound",
@@ -187,7 +281,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     type: "call",
     agent: "Debt Collection Pitch Agent",
     agentSlug: SLUG["Debt Collection Pitch Agent"],
-    version: "v3",
+    version: "v3_rerank_2024q4_hindi_pilot",
     callInfo: {
       type: "call",
       direction: "inbound",
@@ -290,7 +384,7 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     type: "call",
     agent: "Debt Collection Pitch Agent",
     agentSlug: SLUG["Debt Collection Pitch Agent"],
-    version: "v3",
+    version: "v3_rerank_2024q4_hindi_pilot",
     callInfo: {
       type: "call",
       direction: "inbound",
@@ -349,3 +443,14 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     contextVariables: { exam_score: 705, target_branch: "ME" },
   },
 ];
+
+// Inject generated, schema-driven analysis/context values so every agent field
+// is populated and filterable.
+export const MOCK_CONVERSATIONS: Conversation[] = RAW_CONVERSATIONS.map((c) => {
+  const def = agentDef(c.agent);
+  return {
+    ...c,
+    postCallAnalysis: genRecord(def?.postCall ?? [], c.document_id),
+    contextVariables: genRecord(def?.context ?? [], c.document_id),
+  };
+});

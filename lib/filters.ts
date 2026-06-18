@@ -158,18 +158,40 @@ function matchesCondition(c: Conversation, cond: Condition): boolean {
       return contains(c.callInfo.campaign, cond.text ?? "");
     case "task":
       return contains(c.callInfo.task, cond.text ?? "");
-    case "postCall": {
-      if (!cond.text?.trim()) return true;
-      const val = c.postCallAnalysis[cond.key ?? ""];
-      return val !== undefined && contains(String(val), cond.text);
-    }
+    case "postCall":
     case "context": {
-      if (!cond.text?.trim()) return true;
-      const val = c.contextVariables[cond.key ?? ""];
-      return val !== undefined && contains(String(val), cond.text);
+      const rec = cond.field === "postCall" ? c.postCallAnalysis : c.contextVariables;
+      const val = rec[cond.key ?? ""];
+      return matchesDynamic(cond, val);
     }
     default:
       return true;
+  }
+}
+
+/** Match an agent-dependent (postCall/context) field by its chosen mode. */
+function matchesDynamic(cond: Condition, val: string | number | boolean | undefined): boolean {
+  switch (cond.mode) {
+    case "number":
+      return val !== undefined && matchesNumeric(cond.num, Number(val));
+    case "boolean":
+      return !cond.text ? true : val !== undefined && String(val) === cond.text;
+    case "specific": {
+      const v = cond.values ?? [];
+      return !v.length || (val !== undefined && v.includes(String(val)));
+    }
+    case "date": {
+      if (!cond.text) return true;
+      const [from, to] = cond.text.split("|");
+      const d = String(val ?? "");
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    }
+    default:
+      if (!cond.text?.trim()) return true;
+      return val !== undefined && contains(String(val), cond.text);
   }
 }
 
@@ -217,6 +239,13 @@ export function conditionIsActive(cond: Condition): boolean {
     case "turnLatency":
     case "attempt":
       return cond.num != null && (cond.num.value != null || cond.num.value2 != null);
+    case "postCall":
+    case "context":
+      // By match mode: numeric/specific/text/date/boolean carry values differently.
+      if (cond.mode === "number")
+        return cond.num != null && (cond.num.value != null || cond.num.value2 != null);
+      if (cond.mode === "specific") return (cond.values ?? []).length > 0;
+      return !!cond.text?.trim();
     default:
       return !!cond.text?.trim();
   }
@@ -269,6 +298,16 @@ export function conditionLabel(cond: Condition): string | null {
     case "turnLatency":
     case "attempt":
       return numericLabel(base, cond.num!);
+    case "postCall":
+    case "context":
+      if (cond.mode === "number") return numericLabel(base, cond.num!);
+      if (cond.mode === "specific") return `${base}: ${(cond.values ?? []).join(", ")}`;
+      if (cond.mode === "date") {
+        const [from, to] = (cond.text ?? "").split("|");
+        return `${base}: ${from || "…"} → ${to || "…"}`;
+      }
+      if (cond.mode === "boolean") return `${base}: ${cond.text === "true" ? "Yes" : "No"}`;
+      return `${base}: ${cond.text}`;
     default:
       return `${base}: ${cond.text}`;
   }

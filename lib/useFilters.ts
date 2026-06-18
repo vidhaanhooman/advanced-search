@@ -6,13 +6,23 @@ import {
   type ConditionField,
   type ConversationType,
   type DatePreset,
+  type FieldType,
   type FilterState,
+  type MatchMode,
   type NumericFilter,
   type Operator,
   type SearchField,
   EMPTY_NUMERIC,
   INITIAL_FILTERS,
 } from "./types";
+
+export function defaultMode(vtype?: FieldType): MatchMode {
+  if (vtype === "enum") return "specific";
+  if (vtype === "number") return "number";
+  if (vtype === "boolean") return "boolean";
+  if (vtype === "date") return "date";
+  return "text";
+}
 
 export type FilterAction =
   | { type: "RESET_ALL" }
@@ -22,7 +32,8 @@ export type FilterAction =
   | { type: "SET_TYPE"; value: ConversationType | null }
   | { type: "DATE_PRESET"; preset: DatePreset }
   | { type: "DATE_CUSTOM"; from: string | null; to: string | null }
-  | { type: "ADD_CONDITION"; field: ConditionField; key?: string }
+  | { type: "ADD_CONDITION"; field: ConditionField; key?: string; vtype?: FieldType }
+  | { type: "SET_CONDITIONS"; conditions: Condition[] }
   | { type: "REMOVE_CONDITION"; id: string }
   | { type: "UPDATE_CONDITION"; id: string; patch: Partial<Condition> }
   | { type: "TOGGLE_AGENT"; id: string; agent: string }
@@ -34,9 +45,9 @@ function toggle<T>(arr: T[], value: T): T[] {
   return arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value];
 }
 
-function newCondition(field: ConditionField, key?: string): Condition {
+function newCondition(field: ConditionField, key?: string, vtype?: FieldType): Condition {
   const id = key ? `${field}:${key}` : field;
-  const base: Condition = { id, field, key };
+  const base: Condition = { id, field, key, vtype };
   switch (field) {
     case "agent":
       return { ...base, agents: {} };
@@ -53,8 +64,13 @@ function newCondition(field: ConditionField, key?: string): Condition {
     case "attempt":
       // Count pills — "Any" until a pill is chosen.
       return { ...base, num: { ...EMPTY_NUMERIC } };
-    default:
-      return { ...base, text: "" };
+    default: {
+      // Dynamic postCall/context — carrier depends on the chosen match mode.
+      const mode = defaultMode(vtype);
+      if (mode === "specific") return { ...base, mode, values: [] };
+      if (mode === "number") return { ...base, mode, num: { op: "between", value: null, value2: null } };
+      return { ...base, mode, text: "" };
+    }
   }
 }
 
@@ -98,8 +114,10 @@ export function filterReducer(state: FilterState, action: FilterAction): FilterS
     case "ADD_CONDITION": {
       const id = action.key ? `${action.field}:${action.key}` : action.field;
       if (state.conditions.some((c) => c.id === id)) return state;
-      return { ...state, conditions: [...state.conditions, newCondition(action.field, action.key)] };
+      return { ...state, conditions: [...state.conditions, newCondition(action.field, action.key, action.vtype)] };
     }
+    case "SET_CONDITIONS":
+      return { ...state, conditions: action.conditions };
     case "REMOVE_CONDITION":
       return { ...state, conditions: state.conditions.filter((c) => c.id !== action.id) };
     case "UPDATE_CONDITION":

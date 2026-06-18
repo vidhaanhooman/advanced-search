@@ -9,6 +9,15 @@ export const OUTCOME_DOT: Record<Outcome, string> = {
   not_interested: "bg-rose-400",
   no_response: "bg-amber-400",
   unknown: "bg-neutral-400",
+  callback_requested: "bg-sky-400",
+  agent_transfer: "bg-violet-400",
+  escalated: "bg-rose-400",
+  voicemail_left: "bg-amber-400",
+  wrong_number: "bg-neutral-400",
+  do_not_call: "bg-rose-400",
+  language_barrier: "bg-amber-400",
+  partial_info: "bg-sky-400",
+  follow_up_scheduled: "bg-indigo-400",
 };
 
 export const STATUS_DOT: Record<CallStatus, string> = {
@@ -18,6 +27,21 @@ export const STATUS_DOT: Record<CallStatus, string> = {
   no_answer: "bg-neutral-400",
   in_progress: "bg-sky-400",
 };
+
+/** Distinct values observed for a dynamic post-call/context key (for "specific"). */
+export function distinctValues(
+  rows: Conversation[],
+  group: "postCall" | "context",
+  key: string
+): string[] {
+  const set = new Set<string>();
+  for (const c of rows) {
+    const rec = group === "postCall" ? c.postCallAnalysis : c.contextVariables;
+    const v = rec[key];
+    if (v !== undefined) set.add(String(v));
+  }
+  return Array.from(set).sort();
+}
 
 /** Count how many conversations carry a given option value for a field. */
 export function countBy(
@@ -35,24 +59,4 @@ export function countBy(
   return out;
 }
 
-/** Bucket a numeric field across a fixed [min,max] domain (for slider histograms). */
-export function histogram(
-  rows: Conversation[],
-  pick: (c: Conversation) => number | undefined,
-  min: number,
-  max: number,
-  buckets = 32
-): number[] {
-  const span = max - min || 1;
-  const out = new Array(buckets).fill(0);
-  for (const c of rows) {
-    const v = pick(c);
-    if (v == null) continue;
-    let i = Math.floor(((v - min) / span) * buckets);
-    if (i < 0) i = 0;
-    if (i >= buckets) i = buckets - 1;
-    out[i]++;
-  }
-  return out;
-}
 

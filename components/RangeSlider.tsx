@@ -8,8 +8,6 @@ interface RangeSliderProps {
   max: number; // default domain max
   step?: number;
   unit?: string;
-  /** Optional data distribution (bucket counts across [min,max]). */
-  histogram?: number[];
   /** Stored as op:"between"; value = lower (null = open), value2 = upper. */
   value: NumericFilter | null;
   onChange: (value: NumericFilter) => void;
@@ -21,7 +19,7 @@ interface RangeSliderProps {
  * live value tooltip, and Min/Max inputs. Reused by Call duration, Turns,
  * Turn latency.
  */
-export function RangeSlider({ min, max, step = 1, unit, histogram, value, onChange }: RangeSliderProps) {
+export function RangeSlider({ min, max, step = 1, unit, value, onChange }: RangeSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<"lo" | "hi" | null>(null);
   const [hover, setHover] = useState<"lo" | "hi" | null>(null);
@@ -92,31 +90,12 @@ export function RangeSlider({ min, max, step = 1, unit, histogram, value, onChan
     else emit(lo, nv);
   };
 
-  const maxCount = histogram ? Math.max(1, ...histogram) : 1;
-
   return (
-    <div className="space-y-2">
-      {histogram && (
-        <div className="flex h-9 items-end gap-[2px]" aria-hidden>
-          {histogram.map((count, i) => {
-            const center = min + ((i + 0.5) / histogram.length) * span;
-            const inRange = center >= lo && center <= hi;
-            return (
-              <div
-                key={i}
-                className={`flex-1 rounded-[1px] transition-colors ${
-                  inRange ? "bg-white/55" : "bg-border-strong/70"
-                }`}
-                style={{ height: `${count ? Math.max(8, (count / maxCount) * 100) : 3}%` }}
-              />
-            );
-          })}
-        </div>
-      )}
+    <div className="space-y-3">
       <div
         ref={trackRef}
         onPointerDown={onTrackDown}
-        className="relative h-5 cursor-pointer select-none"
+        className="relative mt-1 h-5 cursor-pointer select-none"
       >
         <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-border-strong" />
         <div
