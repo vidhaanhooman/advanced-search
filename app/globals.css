@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark theme (default). Stored as "R G B" channels so Tailwind's /opacity
+     modifiers (e.g. bg-surface-2/60) generate valid rgb(var(--x) / a). */
+  --bg: 10 10 10;
+  --surface: 20 20 20;
+  --surface-2: 28 28 28;
+  --border: 38 38 38;
+  --border-strong: 58 58 58;
+  --text: 237 237 237;
+  --text-dim: 163 163 163;
+  --text-muted: 107 107 107;
+  --accent: 99 102 241;
+  --accent-dim: 55 48 163;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Example light override hook (not toggled in this prototype, shows themeability) */
+[data-theme="light"] {
+  --bg: 250 250 250;
+  --surface: 255 255 255;
+  --surface-2: 241 241 241;
+  --border: 229 229 229;
+  --border-strong: 212 212 212;
+  --text: 23 23 23;
+  --text-dim: 82 82 82;
+  --text-muted: 138 138 138;
+  --accent: 79 70 229;
+  --accent-dim: 199 210 254;
+}
+
+html,
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--text));
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+/* thin scrollbars in panels */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong));
+  border-radius: 4px;
+}
+
+/* Put the default focus ring in the base layer so component-level Tailwind
+   utilities (focus-visible:outline-none, etc.) can override it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 1px;
+  }
+}
