@@ -48,26 +48,31 @@ const DEBT_CONTEXT: FieldDef[] = [
   f("last_payment_date", "date"),
 ];
 
+// version: id is the stable identifier (matches conversation.version), name is the label.
+const vv = (id: string, name: string) => ({ id, name });
+
 export const AGENTS: AgentDef[] = [
   {
+    id: "agt_debt_pitch",
     name: "Debt Collection Pitch Agent",
     versions: [
-      "v1",
-      "v2",
-      "v3_rerank_2024q4_hindi_pilot",
-      "v4_beta",
-      "v5_canary_2025q1",
-      "v6_multilingual",
-      "v7_rerank_v2",
-      "v8_objection_tuned",
-      "v9_prod_2025q2",
+      vv("v1", "v1 · GA"),
+      vv("v2", "v2 · GA"),
+      vv("v3_rerank_2024q4_hindi_pilot", "v3 · Rerank Q4 (Hindi pilot)"),
+      vv("v4_beta", "v4 · Beta"),
+      vv("v5_canary_2025q1", "v5 · Canary Q1"),
+      vv("v6_multilingual", "v6 · Multilingual"),
+      vv("v7_rerank_v2", "v7 · Rerank v2"),
+      vv("v8_objection_tuned", "v8 · Objection-tuned"),
+      vv("v9_prod_2025q2", "v9 · Prod Q2"),
     ],
     postCall: DEBT_POSTCALL,
     context: DEBT_CONTEXT,
   },
   {
+    id: "agt_debt_outbound",
     name: "Debt Collection Outbound Agent",
-    versions: ["v1"],
+    versions: [vv("v1", "v1 · GA")],
     postCall: [
       f("callback_requested", "boolean"),
       f("sentiment", "enum", SENTIMENT),
@@ -77,8 +82,9 @@ export const AGENTS: AgentDef[] = [
     context: [f("due_amount", "number"), f("region", "enum", ["North", "South", "East", "West"])],
   },
   {
+    id: "agt_careers360",
     name: "Careers_360 - Tech college predictor",
-    versions: ["v1"],
+    versions: [vv("v1", "v1 · GA")],
     postCall: [
       f("lead_quality", "enum", ["low", "medium", "high"]),
       f("course_interest", "enum", ["CSE", "ECE", "ME", "CE"]),

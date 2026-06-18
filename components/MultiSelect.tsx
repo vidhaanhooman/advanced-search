@@ -87,7 +87,7 @@ export function MultiSelect({
               role="option"
               aria-selected={isSel}
               onClick={() => onToggle(opt.value)}
-              className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+              className={`flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
                 isSel
                   ? "bg-surface-2 text-text"
                   : "text-text-dim hover:bg-surface-2/60 hover:text-text"

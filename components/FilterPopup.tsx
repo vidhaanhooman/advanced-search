@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Plus, ChevronDown, Lock, Globe, PhoneIncoming, PhoneOutgoing, Phone, Bot, Flag, Activity, Fingerprint, ClipboardList, Braces } from "lucide-react";
+import { X, Search, Plus, Check, ChevronDown, Lock, Globe, PhoneIncoming, PhoneOutgoing, Phone, Bot, Flag, Activity, Fingerprint, ClipboardList, Braces } from "lucide-react";
 import { MultiSelect } from "./MultiSelect";
 import { TokenMultiSelect } from "./TokenMultiSelect";
 import { RangeSlider } from "./RangeSlider";
@@ -13,6 +13,7 @@ import {
   CALL_STATUSES,
   END_REASONS,
   OUTCOMES,
+  type AgentVersion,
   type Condition,
   type ConditionField,
   type FieldDef,
@@ -38,9 +39,9 @@ const CNT = {
 };
 
 const TYPE_CARDS = [
-  { value: "web", label: "Web", icon: <Globe size={18} /> },
-  { value: "inbound", label: "Inbound", icon: <PhoneIncoming size={18} /> },
-  { value: "outbound", label: "Outbound", icon: <PhoneOutgoing size={18} /> },
+  { value: "web", label: "Web", icon: <Globe size={14} /> },
+  { value: "inbound", label: "Inbound", icon: <PhoneIncoming size={14} /> },
+  { value: "outbound", label: "Outbound", icon: <PhoneOutgoing size={14} /> },
 ];
 
 const RANGE = {
@@ -197,7 +198,7 @@ export function FilterPopup({ open, onClose, filters, dispatch, total }: FilterP
         <div className="flex-1 divide-y divide-border overflow-y-auto scroll-thin">
           {/* Type — icon choice cards */}
           <Section {...sectionProps("Type", cnt("channel"))}>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-wrap gap-2">
               {TYPE_CARDS.map((c) => {
                 const on = channelVals.includes(c.value);
                 return (
@@ -205,7 +206,7 @@ export function FilterPopup({ open, onClose, filters, dispatch, total }: FilterP
                     key={c.value}
                     type="button"
                     onClick={() => toggleValue("channel", c.value)}
-                    className={`flex flex-col items-center gap-2 rounded-xl border py-4 text-sm transition-colors ${
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm transition-colors ${
                       on ? "border-text bg-surface-2 text-text" : "border-border-strong text-text-dim hover:border-text-dim hover:text-text"
                     }`}
                   >
@@ -262,7 +263,7 @@ export function FilterPopup({ open, onClose, filters, dispatch, total }: FilterP
 
           {/* Identity */}
           <Section {...sectionProps("Identity", cnt("from", "to", "campaign", "task"))}>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
               <TextField label="Caller (from)" value={cond("from")?.text ?? ""} onChange={(v) => setText("from", v)} />
               <TextField label="Callee (to)" value={cond("to")?.text ?? ""} onChange={(v) => setText("to", v)} />
               <TextField label="Campaign ID" value={cond("campaign")?.text ?? ""} onChange={(v) => setText("campaign", v)} />
@@ -376,7 +377,7 @@ function TextField({ label, value, onChange }: { label: string; value: string; o
   return (
     <label className="block">
       <span className="mb-1 block text-xs text-text-muted">{label}</span>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="contains…" className="h-9 w-full rounded-md border border-border-strong bg-surface-2 px-2.5 text-sm text-text outline-none placeholder:text-text-muted" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="contains…" className="h-9 w-full rounded-lg border border-border-strong bg-surface-2 px-2.5 text-sm text-text outline-none placeholder:text-text-muted" />
     </label>
   );
 }
@@ -410,17 +411,44 @@ function AgentField({
 
   return (
     <div className="space-y-2.5">
-      {/* selected chips with versions */}
+      {/* search to add — always on top */}
+      <div className="flex h-9 items-center gap-2 rounded-lg border border-border-strong bg-surface-2 px-2.5">
+        <Search size={13} className="text-text-muted" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search agents…" className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted" />
+      </div>
+      {available.length > 0 && (q || selected.length === 0) && (
+        <ul className="max-h-40 overflow-auto rounded-md border border-border scroll-thin">
+          {available.map((a) => (
+            <li key={a.name}>
+              <button type="button" onClick={() => toggleAgent(a.name)} className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left hover:bg-surface-2">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Plus size={12} className="shrink-0 text-text-muted" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-text-dim">{a.name}</span>
+                    <span className="block truncate font-mono text-[10px] text-text-muted">{a.id}</span>
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-text-muted">{CNT.agent[a.name] ?? 0}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* selected agents with versions */}
       {selected.length > 0 && (
         <div className="space-y-2">
           {selected.map((name) => {
             const def = agentDef(name);
             const picked = agents[name] ?? [];
             return (
-              <div key={name} className="rounded-lg border border-border bg-surface-2/40 p-2.5">
-                <div className="mb-1.5 flex items-start justify-between gap-2">
-                  <span className="break-words text-sm text-text">{name}</span>
-                  <button type="button" onClick={() => toggleAgent(name)} aria-label={`Remove ${name}`} className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted hover:bg-border-strong hover:text-text">
+              <div key={name} className="rounded-lg border border-border bg-surface-2/40 p-3">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="break-words text-sm text-text">{name}</div>
+                    <div className="truncate font-mono text-[11px] text-text-muted">{def?.id}</div>
+                  </div>
+                  <button type="button" onClick={() => toggleAgent(name)} aria-label={`Remove ${name}`} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-muted hover:bg-border-strong hover:text-text">
                     <X size={13} />
                   </button>
                 </div>
@@ -430,32 +458,11 @@ function AgentField({
           })}
         </div>
       )}
-
-      {/* search to add */}
-      <div className="flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
-        <Search size={13} className="text-text-muted" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search agents…" className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted" />
-      </div>
-      {available.length > 0 && (q || selected.length === 0) && (
-        <ul className="max-h-40 overflow-auto rounded-md border border-border scroll-thin">
-          {available.map((a) => (
-            <li key={a.name}>
-              <button type="button" onClick={() => toggleAgent(a.name)} className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm text-text-dim hover:bg-surface-2 hover:text-text">
-                <span className="flex items-center gap-2 truncate">
-                  <Plus size={12} className="shrink-0 text-text-muted" />
-                  {a.name}
-                </span>
-                <span className="shrink-0 text-xs text-text-muted">{CNT.agent[a.name] ?? 0}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
 
-// Interactive version picker — search + Select all / Clear + live count.
+// Interactive version picker — a checkbox list (name + id), search + Select all / Clear.
 function VersionPicker({
   name,
   versions,
@@ -463,45 +470,57 @@ function VersionPicker({
   dispatch,
 }: {
   name: string;
-  versions: string[];
+  versions: AgentVersion[];
   picked: string[];
   dispatch: React.Dispatch<FilterAction>;
 }) {
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
-  const shown = versions.filter((v) => v.toLowerCase().includes(query));
-  const toggle = (v: string) => dispatch({ type: "TOGGLE_AGENT_VERSION", id: "agent", agent: name, version: v });
+  const shown = versions.filter((v) => v.name.toLowerCase().includes(query) || v.id.toLowerCase().includes(query));
+  const toggle = (id: string) => dispatch({ type: "TOGGLE_AGENT_VERSION", id: "agent", agent: name, version: id });
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        {versions.length > 5 && (
-          <div className="flex h-8 flex-1 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
-            <Search size={12} className="text-text-muted" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter versions…" className="w-full bg-transparent text-xs text-text outline-none placeholder:text-text-muted" />
-          </div>
-        )}
-        <button type="button" onClick={() => versions.forEach((v) => !picked.includes(v) && toggle(v))} className="rounded-md border border-border-strong px-2 py-1 text-[11px] text-text-dim hover:bg-surface-2 hover:text-text">
-          Select all
-        </button>
-        {picked.length > 0 && (
-          <button type="button" onClick={() => picked.forEach(toggle)} className="rounded-md px-2 py-1 text-[11px] text-text-muted hover:text-text">
-            Clear
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-text-muted">
+          Versions {picked.length > 0 && <span className="text-text-dim">· {picked.length} selected</span>}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={() => versions.forEach((v) => !picked.includes(v.id) && toggle(v.id))} className="text-[11px] text-text-dim hover:text-text">
+            Select all
           </button>
-        )}
-      </div>
-      <div className="flex max-h-28 flex-wrap content-start gap-1.5 overflow-y-auto scroll-thin">
-        {shown.map((v) => {
-          const on = picked.includes(v);
-          return (
-            <button key={v} type="button" onClick={() => toggle(v)} className={`h-fit max-w-full break-all rounded border px-2 py-0.5 text-left font-mono text-xs transition-colors ${on ? "border-accent bg-accent/15 text-text" : "border-border-strong text-text-muted hover:text-text"}`}>
-              {v}
+          {picked.length > 0 && (
+            <button type="button" onClick={() => picked.forEach(toggle)} className="text-[11px] text-text-muted hover:text-text">
+              Clear
             </button>
+          )}
+        </div>
+      </div>
+      {versions.length > 5 && (
+        <div className="flex h-8 items-center gap-2 rounded-lg border border-border-strong bg-surface-2 px-2.5">
+          <Search size={12} className="text-text-muted" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter versions…" className="w-full bg-transparent text-xs text-text outline-none placeholder:text-text-muted" />
+        </div>
+      )}
+      <ul className="max-h-44 overflow-auto rounded-md border border-border scroll-thin">
+        {shown.length === 0 && <li className="px-2.5 py-1.5 text-[11px] text-text-muted">No versions match.</li>}
+        {shown.map((v) => {
+          const on = picked.includes(v.id);
+          return (
+            <li key={v.id}>
+              <button type="button" onClick={() => toggle(v.id)} className={`flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left transition-colors ${on ? "bg-surface-2" : "hover:bg-surface-2/60"}`}>
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${on ? "border-white bg-white text-black" : "border-border-strong"}`}>
+                  {on && <Check size={11} strokeWidth={3} />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm text-text">{v.name}</span>
+                  <span className="block truncate font-mono text-[10px] text-text-muted">{v.id}</span>
+                </span>
+              </button>
+            </li>
           );
         })}
-        {!shown.length && <span className="text-[11px] text-text-muted">No versions match.</span>}
-      </div>
-      <div className="text-[11px] text-text-muted">{picked.length ? `${picked.length} of ${versions.length} selected` : "All versions"}</div>
+      </ul>
     </div>
   );
 }
@@ -541,7 +560,7 @@ function DynamicGroup({
   return (
     <div className="space-y-3">
       <div>
-        <div className="flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
+        <div className="flex h-9 items-center gap-2 rounded-lg border border-border-strong bg-surface-2 px-2.5">
           <Search size={13} className="text-text-muted" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Find a field… (${fields.length})`} className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted" />
         </div>

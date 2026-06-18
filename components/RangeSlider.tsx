@@ -167,7 +167,7 @@ function NumBox({
   onChange: (n: number | null) => void;
 }) {
   return (
-    <div className="flex h-10 flex-1 items-center gap-1 rounded-lg border border-border-strong bg-surface-2 px-3 focus-within:border-white">
+    <div className="flex h-9 flex-1 items-center gap-1 rounded-lg border border-border-strong bg-surface-2 px-3 focus-within:border-white">
       <input
         type="number"
         inputMode="numeric"

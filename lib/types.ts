@@ -84,9 +84,15 @@ export interface FieldDef {
   values?: string[]; // allowed options for enum
 }
 
-export interface AgentDef {
+export interface AgentVersion {
+  id: string;
   name: string;
-  versions: string[];
+}
+
+export interface AgentDef {
+  id: string;
+  name: string;
+  versions: AgentVersion[];
   postCall: FieldDef[];
   context: FieldDef[];
 }
