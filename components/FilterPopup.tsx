@@ -252,10 +252,10 @@ export function FilterPopup({ open, onClose, filters, dispatch, total }: FilterP
               <Labeled label="Turns">
                 <RangeSlider min={RANGE.turns.min} max={RANGE.turns.max} step={RANGE.turns.step} value={cond("turns")?.num ?? null} onChange={(num) => setNum("turns", num)} />
               </Labeled>
-              <Labeled label="Turn latency">
+              <Labeled label="Turn latency" className="self-end">
                 <RangeSlider min={RANGE.turnLatency.min} max={RANGE.turnLatency.max} step={RANGE.turnLatency.step} unit={RANGE.turnLatency.unit} value={cond("turnLatency")?.num ?? null} onChange={(num) => setNum("turnLatency", num)} />
               </Labeled>
-              <Labeled label="Attempt">
+              <Labeled label="Attempt" className="self-end">
                 <PillGroup value={cond("attempt")?.num ?? null} onChange={(num) => setNum("attempt", num ?? { op: "=", value: null, value2: null })} />
               </Labeled>
             </div>
@@ -364,9 +364,9 @@ function Section({
   );
 }
 
-function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
+function Labeled({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-1.5${className ? ` ${className}` : ""}`}>
       <span className="block text-sm text-text-dim">{label}</span>
       {children}
     </div>
