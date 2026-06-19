@@ -7,6 +7,8 @@ interface PopoverProps {
   children: (props: { close: () => void }) => React.ReactNode;
   align?: "left" | "right";
   width?: number;
+  /** When true, click-outside and Escape do NOT close the popover. */
+  disableClose?: boolean;
 }
 
 /**
@@ -14,12 +16,12 @@ interface PopoverProps {
  * to close. Used by the toolbar dropdown controls (Agent, Duration, Date,
  * Search field, MultiSelect).
  */
-export function Popover({ trigger, children, align = "left", width }: PopoverProps) {
+export function Popover({ trigger, children, align = "left", width, disableClose }: PopoverProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || disableClose) return;
     function onDown(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
@@ -32,7 +34,7 @@ export function Popover({ trigger, children, align = "left", width }: PopoverPro
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, disableClose]);
 
   return (
     <div className="relative inline-block" ref={ref}>

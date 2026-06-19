@@ -43,6 +43,27 @@ export function distinctValues(
   return Array.from(set).sort();
 }
 
+/** Min/max of a dynamic numeric field across the dataset (for range sliders). */
+export function numericDomain(
+  rows: Conversation[],
+  group: "postCall" | "context",
+  key: string
+): { min: number; max: number } {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const c of rows) {
+    const rec = group === "postCall" ? c.postCallAnalysis : c.contextVariables;
+    const v = rec[key];
+    if (typeof v === "number") {
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return { min: 0, max: 100 };
+  if (min === max) return { min: Math.min(0, min), max: max + 1 };
+  return { min: Math.floor(min), max: Math.ceil(max) };
+}
+
 /** Count how many conversations carry a given option value for a field. */
 export function countBy(
   rows: Conversation[],

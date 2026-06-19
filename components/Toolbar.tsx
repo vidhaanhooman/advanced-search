@@ -5,6 +5,7 @@ import { Search, Calendar, Filter as FunnelIcon } from "lucide-react";
 import { Popover } from "./Popover";
 import { ToolbarButton } from "./ToolbarButton";
 import { FilterPopup } from "./FilterPopup";
+import { FilterMenu } from "./FilterMenu";
 import { RangeCalendar } from "./RangeCalendar";
 import { datePresetLabel, dateWindow } from "@/lib/filters";
 import {
@@ -73,6 +74,8 @@ export function Toolbar({
 
   // Filter modal open state (dismiss on Escape)
   const [filterOpen, setFilterOpen] = useState(false);
+  // Pin the filter dropdown open for testing — disables outside-click & Escape close.
+  const [filterPinned, setFilterPinned] = useState(false);
   useEffect(() => {
     if (!filterOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -242,16 +245,37 @@ export function Toolbar({
           )}
         </Popover>
 
-        {/* Filter modal trigger with active-count badge */}
-        <ToolbarButton
-          icon={<FunnelIcon size={14} />}
-          label="Filter"
-          active={drawerBadge > 0}
-          badge={drawerBadge}
-          open={filterOpen}
-          chevron={false}
-          onClick={() => setFilterOpen(true)}
-        />
+        {/* Filter dropdown menu — categories + flyout submenus; Advanced opens the modal */}
+        <Popover
+          align="right"
+          width={300}
+          disableClose={filterPinned}
+          trigger={({ open, toggle }) => (
+            <ToolbarButton
+              icon={<FunnelIcon size={14} />}
+              label="Filter"
+              active={drawerBadge > 0}
+              badge={drawerBadge}
+              open={open}
+              chevron={false}
+              onClick={toggle}
+            />
+          )}
+        >
+          {({ close }) => (
+            <FilterMenu
+              filters={filters}
+              dispatch={dispatch}
+              onOpenAdvanced={() => {
+                close();
+                setFilterOpen(true);
+              }}
+              close={close}
+              pinned={filterPinned}
+              onTogglePin={() => setFilterPinned((p) => !p)}
+            />
+          )}
+        </Popover>
       </div>
 
       <FilterPopup

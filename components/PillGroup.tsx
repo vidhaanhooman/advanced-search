@@ -7,12 +7,12 @@ interface PillGroupProps {
   /** Stored as op:"=" for exact counts, op:">=" for the "6+" pill, null = Any. */
   value: NumericFilter | null;
   onChange: (value: NumericFilter | null) => void;
-  /** Highest exact pill before the "N+" pill. */
+  /** Highest exact pill before the "N+" pill — the trailing pill becomes "(maxExact)+". */
   maxExact?: number;
 }
 
-/** Airbnb "Rooms and Beds" style: Any · 1 · 2 · 3 · 4 · 5 · 6+ segmented pills. */
-export function PillGroup({ label, value, onChange, maxExact = 5 }: PillGroupProps) {
+/** Airbnb "Rooms and Beds" style: Any · 1 · 2 · 3 · 4 · 5+ segmented pills. */
+export function PillGroup({ label, value, onChange, maxExact = 4 }: PillGroupProps) {
   const exact = value && value.op === "=" ? value.value : null;
   const plus = value && value.op === ">=" ? value.value : null;
   const plusValue = maxExact + 1;

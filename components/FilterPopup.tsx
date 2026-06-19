@@ -5,9 +5,10 @@ import { X, Search, Plus, Check, ChevronDown, Lock, Globe, PhoneIncoming, PhoneO
 import { MultiSelect } from "./MultiSelect";
 import { TokenMultiSelect } from "./TokenMultiSelect";
 import { RangeSlider } from "./RangeSlider";
+import { RangeCalendar } from "./RangeCalendar";
 import { PillGroup } from "./PillGroup";
 import { AGENTS, agentDef, MOCK_CONVERSATIONS } from "@/lib/mockConversations";
-import { OUTCOME_DOT, STATUS_DOT, countBy, distinctValues } from "@/lib/display";
+import { OUTCOME_DOT, STATUS_DOT, countBy, distinctValues, numericDomain } from "@/lib/display";
 import { applyFilters, conditionIsActive } from "@/lib/filters";
 import {
   CALL_STATUSES,
@@ -31,20 +32,20 @@ interface FilterPopupProps {
   total: number;
 }
 
-const CNT = {
+export const CNT = {
   outcome: countBy(MOCK_CONVERSATIONS, (c) => c.outcome),
   callStatus: countBy(MOCK_CONVERSATIONS, (c) => c.callInfo.status),
   endReason: countBy(MOCK_CONVERSATIONS, (c) => c.callInfo.endReason),
   agent: countBy(MOCK_CONVERSATIONS, (c) => c.agent),
 };
 
-const TYPE_CARDS = [
+export const TYPE_CARDS = [
   { value: "web", label: "Web", icon: <Globe size={14} /> },
   { value: "inbound", label: "Inbound", icon: <PhoneIncoming size={14} /> },
   { value: "outbound", label: "Outbound", icon: <PhoneOutgoing size={14} /> },
 ];
 
-const RANGE = {
+export const RANGE = {
   duration: { min: 0, max: 600, step: 5, unit: "s" },
   turns: { min: 0, max: 50, step: 1 },
   turnLatency: { min: 0, max: 2000, step: 10, unit: "ms" },
@@ -391,7 +392,7 @@ function dedupe(fields: FieldDef[]): FieldDef[] {
 // Agent — searchable, selected shown as removable chips + version sub-picker
 // ---------------------------------------------------------------------------
 
-function AgentField({
+export function AgentField({
   agents,
   dispatch,
   ensure,
@@ -529,7 +530,7 @@ function VersionPicker({
 // Post-call / context — search-to-add picker + typed condition rows
 // ---------------------------------------------------------------------------
 
-function DynamicGroup({
+export function DynamicGroup({
   group,
   gated,
   fields,
@@ -603,7 +604,7 @@ function DynamicGroup({
 }
 
 // Context variables are free-form keys — type the exact key, then configure on the right.
-function ContextKeyInput({ conditions, dispatch }: { conditions: Condition[]; dispatch: React.Dispatch<FilterAction> }) {
+export function ContextKeyInput({ conditions, dispatch }: { conditions: Condition[]; dispatch: React.Dispatch<FilterAction> }) {
   const [key, setKey] = useState("");
   const add = () => {
     const k = key.trim();
@@ -683,16 +684,25 @@ function DynamicEditor({
       )}
 
       {mode === "number" && (
-        <>
-          <Select value={cond.num?.op ?? "between"} onChange={(op) => update({ num: { op: op as Operator, value: cond.num?.value ?? null, value2: cond.num?.value2 ?? null } })} options={NUM_OPS} />
-          <NumInput value={cond.num?.value ?? null} placeholder={cond.num?.op === "between" ? "min" : "value"} onChange={(n) => update({ num: { op: cond.num?.op ?? "between", value: n, value2: cond.num?.value2 ?? null } })} />
-          {(cond.num?.op ?? "between") === "between" && (
+        (() => {
+          const op = cond.num?.op ?? "between";
+          if (op === "between") {
+            const { min, max } = numericDomain(MOCK_CONVERSATIONS, group, cond.key ?? "");
+            const step = Math.max(1, Math.round((max - min) / 100));
+            return (
+              <div className="w-full space-y-2">
+                <Select value={op} onChange={(o) => update({ num: { op: o as Operator, value: cond.num?.value ?? null, value2: cond.num?.value2 ?? null } })} options={NUM_OPS} />
+                <RangeSlider min={min} max={max} step={step} value={cond.num ?? null} onChange={(num) => update({ num })} />
+              </div>
+            );
+          }
+          return (
             <>
-              <span className="text-text-muted">—</span>
-              <NumInput value={cond.num?.value2 ?? null} placeholder="max" onChange={(n) => update({ num: { op: "between", value: cond.num?.value ?? null, value2: n } })} />
+              <Select value={op} onChange={(o) => update({ num: { op: o as Operator, value: cond.num?.value ?? null, value2: cond.num?.value2 ?? null } })} options={NUM_OPS} />
+              <NumInput value={cond.num?.value ?? null} placeholder="value" onChange={(n) => update({ num: { op, value: n, value2: null } })} />
             </>
-          )}
-        </>
+          );
+        })()
       )}
 
       {mode === "boolean" && (
@@ -738,11 +748,8 @@ function NumInput({ value, placeholder, onChange }: { value: number | null; plac
 function DateRange({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [from, to] = value.split("|");
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-text-muted">between</span>
-      <input type="date" value={from || ""} onChange={(e) => onChange(`${e.target.value}|${to || ""}`)} className="h-9 rounded-lg border border-border-strong bg-surface-2 px-2.5 text-sm text-text outline-none [color-scheme:dark]" />
-      <span className="text-text-muted">—</span>
-      <input type="date" value={to || ""} onChange={(e) => onChange(`${from || ""}|${e.target.value}`)} className="h-9 rounded-lg border border-border-strong bg-surface-2 px-2.5 text-sm text-text outline-none [color-scheme:dark]" />
+    <div className="w-full rounded-lg border border-border bg-surface-2/30 p-3">
+      <RangeCalendar from={from || null} to={to || null} onChange={(f, t) => onChange(`${f}|${t}`)} />
     </div>
   );
 }

@@ -51,10 +51,19 @@ const DEBT_CONTEXT: FieldDef[] = [
 // version: id is the stable identifier (matches conversation.version), name is the label.
 const vv = (id: string, name: string) => ({ id, name });
 
+const GENERIC_POSTCALL: FieldDef[] = [
+  f("sentiment", "enum", SENTIMENT),
+  f("resolved", "boolean"),
+  f("summary", "string"),
+  f("score", "number"),
+];
+const GENERIC_CONTEXT: FieldDef[] = [f("plan", "enum", ["free", "pro", "premium"]), f("account_id", "string")];
+
 export const AGENTS: AgentDef[] = [
   {
     id: "agt_debt_pitch",
     name: "Debt Collection Pitch Agent",
+    kind: "conversation",
     versions: [
       vv("v1", "v1 · GA"),
       vv("v2", "v2 · GA"),
@@ -72,6 +81,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: "agt_debt_outbound",
     name: "Debt Collection Outbound Agent",
+    kind: "broadcast",
     versions: [vv("v1", "v1 · GA")],
     postCall: [
       f("callback_requested", "boolean"),
@@ -84,6 +94,7 @@ export const AGENTS: AgentDef[] = [
   {
     id: "agt_careers360",
     name: "Careers_360 - Tech college predictor",
+    kind: "conversation",
     versions: [vv("v1", "v1 · GA")],
     postCall: [
       f("lead_quality", "enum", ["low", "medium", "high"]),
@@ -92,6 +103,38 @@ export const AGENTS: AgentDef[] = [
       f("budget", "number"),
     ],
     context: [f("exam_score", "number"), f("target_branch", "enum", ["CSE", "ECE", "ME", "CE"])],
+  },
+  {
+    id: "agt_premium",
+    name: "premium",
+    kind: "conversation",
+    versions: [vv("v1_2", "v1.2"), vv("v1_1", "v1.1"), vv("v1_0", "v1.0")],
+    postCall: GENERIC_POSTCALL,
+    context: GENERIC_CONTEXT,
+  },
+  {
+    id: "agt_standard",
+    name: "standard",
+    kind: "broadcast",
+    versions: [vv("v2", "v2 · GA"), vv("v1", "v1 · GA")],
+    postCall: GENERIC_POSTCALL,
+    context: GENERIC_CONTEXT,
+  },
+  {
+    id: "agt_palmonas",
+    name: "palmonas hoomanlabs",
+    kind: "broadcast",
+    versions: [vv("v1", "v1 · GA")],
+    postCall: GENERIC_POSTCALL,
+    context: GENERIC_CONTEXT,
+  },
+  {
+    id: "agt_vidhan_test",
+    name: "Vidhan Test",
+    kind: "conversation",
+    versions: [vv("v3", "v3 · Beta"), vv("v2", "v2"), vv("v1", "v1")],
+    postCall: GENERIC_POSTCALL,
+    context: GENERIC_CONTEXT,
   },
 ];
 

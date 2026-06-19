@@ -89,9 +89,12 @@ export interface AgentVersion {
   name: string;
 }
 
+export type AgentKind = "conversation" | "broadcast";
+
 export interface AgentDef {
   id: string;
   name: string;
+  kind: AgentKind;
   versions: AgentVersion[];
   postCall: FieldDef[];
   context: FieldDef[];
