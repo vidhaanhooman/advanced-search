@@ -576,7 +576,7 @@ export function DynamicGroup({
   const visible = fields.filter((f) => f.key.toLowerCase().includes(query));
 
   return (
-    <div className="flex items-stretch justify-end gap-1">
+    <div className="flex items-start justify-end gap-1">
       {/* left card — added editors (only when there are conditions) */}
       {conditions.length > 0 && (
         <div className={`${CARD} flex w-[300px] shrink-0 flex-col`}>
@@ -674,7 +674,7 @@ export function ContextKeyInput({ conditions, dispatch }: { conditions: Conditio
     setKey("");
   };
   return (
-    <div className="flex items-stretch justify-end gap-1">
+    <div className="flex items-start justify-end gap-1">
       {/* left card — added editors */}
       {conditions.length > 0 && (
         <div className={`${CARD} flex w-[300px] shrink-0 flex-col`}>

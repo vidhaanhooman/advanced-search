@@ -388,44 +388,26 @@ export function FilterMenu(props: FilterMenuProps) {
 
   return (
     <div className="relative" ref={rootRef}>
-      {/* header — active count + Clear all on the left, Pin chip on the right */}
-      <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-        {(() => {
-          const activeCount = filters.conditions.filter(conditionIsActive).length;
-          return activeCount > 0 ? (
-            <div className="flex items-center gap-1.5 pl-1 text-[11px] text-text-muted">
-              <span>
-                <span className="font-medium text-text">{activeCount}</span> active
-              </span>
-              <span className="text-text-dim">·</span>
-              <button
-                type="button"
-                onClick={() => dispatch({ type: "CLEAR_CONDITIONS" })}
-                className="text-text-dim hover:text-text"
-              >
-                Clear all
-              </button>
-            </div>
-          ) : (
-            <span className="pl-1 text-[11px] text-text-dim">No active filters</span>
-          );
-        })()}
-        {onTogglePin && (
-          <button
-            type="button"
-            onClick={onTogglePin}
-            title={pinned ? "Unpin — close on outside click" : "Pin open for testing"}
-            className={`flex h-5 items-center gap-1 rounded border px-1.5 text-[10px] font-medium transition-colors ${
-              pinned
-                ? "border-accent/60 bg-accent/15 text-accent"
-                : "border-border-strong bg-surface-2 text-text-muted hover:text-text"
-            }`}
-          >
-            {pinned ? <Pin size={10} /> : <PinOff size={10} />}
-            {pinned ? "Pinned" : "Pin"}
-          </button>
-        )}
-      </div>
+      {/* header — active count + Clear all only when there are filters */}
+      {(() => {
+        const activeCount = filters.conditions.filter(conditionIsActive).length;
+        if (!activeCount) return null;
+        return (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-text-muted">
+            <span>
+              <span className="font-medium text-text">{activeCount}</span> active
+            </span>
+            <span className="text-text-dim">·</span>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "CLEAR_CONDITIONS" })}
+              className="text-text-dim hover:text-text"
+            >
+              Clear all
+            </button>
+          </div>
+        );
+      })()}
 
       {/* category list — sized to fit every row without scroll */}
       <div className="py-1">
