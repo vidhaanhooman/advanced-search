@@ -9,14 +9,17 @@ interface PopoverProps {
   width?: number;
   /** When true, click-outside and Escape do NOT close the popover. */
   disableClose?: boolean;
+  /** When true, lock body scroll and render an invisible overlay behind the popover. */
+  blockBackground?: boolean;
 }
 
 /**
  * Minimal accessible popover: click trigger to toggle, click-outside / Escape
  * to close. Used by the toolbar dropdown controls (Agent, Duration, Date,
- * Search field, MultiSelect).
+ * Search field, MultiSelect). With blockBackground, an invisible overlay
+ * catches outside clicks and the body's scroll is locked.
  */
-export function Popover({ trigger, children, align = "left", width, disableClose }: PopoverProps) {
+export function Popover({ trigger, children, align = "left", width, disableClose, blockBackground }: PopoverProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -36,9 +39,25 @@ export function Popover({ trigger, children, align = "left", width, disableClose
     };
   }, [open, disableClose]);
 
+  // Lock body scroll while the popover is open (optional).
+  useEffect(() => {
+    if (!open || !blockBackground) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, blockBackground]);
+
   return (
     <div className="relative inline-block" ref={ref}>
       {trigger({ open, toggle: () => setOpen((o) => !o) })}
+      {open && blockBackground && (
+        // Invisible overlay (opacity-0). Catches clicks/scroll outside the popover
+        // so the underlying table doesn't scroll. Closing is handled by the
+        // existing mousedown listener above (or Escape).
+        <div className="fixed inset-0 z-20" aria-hidden onClick={() => !disableClose && setOpen(false)} />
+      )}
       {open && (
         <div
           className="absolute z-30 mt-1.5 rounded-lg border border-border-strong bg-surface shadow-xl shadow-black/40"

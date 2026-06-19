@@ -426,6 +426,8 @@ function TextLeaf({ ctx, field }: { ctx: Ctx; field: ConditionField }) {
 export function FilterMenu(props: FilterMenuProps) {
   const { filters, dispatch, onOpenAdvanced, close, pinned, onTogglePin } = props;
   const [active, setActive] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
   /** Vertical anchor mode + offset (px) relative to the menu container. */
   const [anchor, setAnchor] = useState<{ mode: "top" | "bottom"; offset: number }>({ mode: "top", offset: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
@@ -485,8 +487,28 @@ export function FilterMenu(props: FilterMenuProps) {
 
   const activeCat = SECTIONS.flatMap((s) => s.items).find((c) => c.id === active) ?? null;
 
+  // Filter sections by the search query (matches cat labels). Empty sections are hidden.
+  const visibleSections = query
+    ? SECTIONS.map((s) => ({ ...s, items: s.items.filter((c) => c.label.toLowerCase().includes(query)) })).filter(
+        (s) => s.items.length > 0
+      )
+    : SECTIONS;
+
   return (
-    <div className="relative" ref={rootRef}>
+    <div className="relative flex max-h-[80vh] flex-col" ref={rootRef}>
+      {/* search — type to filter the category list */}
+      <div className="border-b border-border p-2">
+        <div className="flex h-8 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
+          <Search size={13} className="shrink-0 text-text-muted" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search filters…"
+            className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted"
+          />
+        </div>
+      </div>
+
       {/* header — active count + Clear all only when there are filters */}
       {(() => {
         const activeCount = filters.conditions.filter(conditionIsActive).length;
@@ -508,9 +530,12 @@ export function FilterMenu(props: FilterMenuProps) {
         );
       })()}
 
-      {/* category list — sized to fit every row without scroll */}
-      <div className="py-1">
-        {SECTIONS.map((section, si) => (
+      {/* category list — scrolls on small viewports */}
+      <div className="min-h-0 flex-1 overflow-y-auto py-1 scroll-thin">
+        {visibleSections.length === 0 && (
+          <p className="px-3 py-3 text-center text-xs text-text-muted">No matching filters.</p>
+        )}
+        {visibleSections.map((section, si) => (
           <div key={si}>
             {si > 0 && <div className="my-0.5 h-px bg-border" />}
             {section.title && (

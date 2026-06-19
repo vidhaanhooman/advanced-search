@@ -186,6 +186,7 @@ export function Toolbar({
           align="right"
           width={300}
           disableClose={filterPinned}
+          blockBackground
           trigger={({ open, toggle }) => (
             <ToolbarButton
               icon={<FunnelIcon size={14} />}

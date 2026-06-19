@@ -649,7 +649,6 @@ export function DynamicGroup({
                       </span>
                       <span className="truncate">{f.key}</span>
                     </span>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-text-muted">{f.type}</span>
                   </button>
                 </li>
               );
