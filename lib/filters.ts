@@ -114,18 +114,20 @@ function matchesCondition(c: Conversation, cond: Condition): boolean {
       return !versions.length || versions.includes(c.version);
     }
     case "channel": {
-      // Type filter: chat (web), conversation (call+conversation agent), broadcast (call+broadcast agent).
+      // Type filter — flat union of channel + agent-kind options.
       const v = cond.values ?? [];
       if (!v.length) return true;
       const kind = agentDef(c.agent)?.kind;
       return v.some((val) => {
         switch (val) {
-          case "chat":
+          case "web":
             return c.type === "web";
-          case "conversation":
-            return c.type === "call" && kind === "conversation";
+          case "call":
+            return c.type === "call";
+          case "chat":
+            return kind === "conversation";
           case "broadcast":
-            return c.type === "call" && kind === "broadcast";
+            return kind === "broadcast";
           default:
             return false;
         }
@@ -164,6 +166,8 @@ function matchesCondition(c: Conversation, cond: Condition): boolean {
       return contains(c.callInfo.campaign, cond.text ?? "");
     case "task":
       return contains(c.callInfo.task, cond.text ?? "");
+    case "callSid":
+      return contains(c.callInfo.callSid, cond.text ?? "");
     case "postCall":
     case "context": {
       const rec = cond.field === "postCall" ? c.postCallAnalysis : c.contextVariables;

@@ -9,12 +9,8 @@ import { FilterMenu } from "./FilterMenu";
 import { RangeCalendar } from "./RangeCalendar";
 import { datePresetLabel, dateWindow } from "@/lib/filters";
 import {
-  SEARCH_FIELDS,
-  TYPE_SEGMENTS,
-  type ConversationType,
   type DatePreset,
   type FilterState,
-  type SearchField,
 } from "@/lib/types";
 import type { FilterAction } from "@/lib/useFilters";
 
@@ -46,8 +42,6 @@ export function Toolbar({
   total,
 }: ToolbarProps) {
   const dateActive = !!filters.date.preset;
-  const searchLabel =
-    SEARCH_FIELDS.find((f) => f.value === filters.search.field)?.label ?? "";
 
   // Current range — reflects preset or custom range, split into date + time.
   let rawFrom: string | null;
@@ -87,78 +81,16 @@ export function Toolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* Scoped search: field dropdown + input */}
-      <div className="flex h-9 items-stretch rounded-lg border border-border-strong bg-surface focus-within:ring-1 focus-within:ring-accent/40">
-        <Popover
-          width={200}
-          trigger={({ open, toggle }) => (
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={open}
-              className="flex h-full items-center gap-1.5 rounded-l-lg border-r border-border bg-surface-2 px-3 text-sm text-text-dim hover:text-text focus-visible:outline-none"
-            >
-              {searchLabel}
-              <svg width="12" height="12" viewBox="0 0 24 24" className="text-text-muted">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" fill="none" />
-              </svg>
-            </button>
-          )}
-        >
-          {({ close }) => (
-            <ul className="py-1">
-              {SEARCH_FIELDS.map((f) => (
-                <li key={f.value}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      dispatch({ type: "SEARCH_FIELD", field: f.value as SearchField });
-                      close();
-                    }}
-                    className={`block w-full px-3 py-2 text-left text-sm hover:bg-surface-2 ${
-                      filters.search.field === f.value ? "text-text" : "text-text-dim"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Popover>
-        <div className="flex items-center pl-3 text-text-muted">
-          <Search size={14} />
-        </div>
+      {/* Plain search input — scoped to conversation id only */}
+      <div className="flex h-9 items-center rounded-lg border border-border-strong bg-surface px-3 focus-within:ring-1 focus-within:ring-accent/40">
+        <Search size={14} className="text-text-muted" />
         <input
           value={filters.search.query}
           onChange={(e) => dispatch({ type: "SEARCH_QUERY", query: e.target.value })}
-          placeholder={`Search by ${searchLabel.toLowerCase()}…`}
+          placeholder="Search by conversation id…"
           aria-label="Search query"
-          className="w-60 bg-transparent px-2 text-sm text-text outline-none placeholder:text-text-muted"
+          className="w-72 bg-transparent px-2 text-sm text-text outline-none placeholder:text-text-muted"
         />
-      </div>
-
-      {/* Segmented type: All / Call / Web */}
-      <div className="flex h-9 items-center rounded-lg border border-border-strong bg-surface p-0.5">
-        {TYPE_SEGMENTS.map((seg) => {
-          const active = filters.type === seg.value;
-          return (
-            <button
-              key={seg.label}
-              type="button"
-              onClick={() =>
-                dispatch({ type: "SET_TYPE", value: seg.value as ConversationType | null })
-              }
-              className={`h-8 rounded-md px-3 text-sm transition-colors ${
-                active
-                  ? "bg-surface-2 text-text shadow-sm"
-                  : "text-text-dim hover:text-text"
-              }`}
-            >
-              {seg.label}
-            </button>
-          );
-        })}
       </div>
 
       <div className="ml-auto flex items-center gap-3">

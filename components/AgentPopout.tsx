@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Search } from "lucide-react";
+import { Bot, Check, Search } from "lucide-react";
 import { AGENTS } from "@/lib/mockConversations";
 import type { AgentKind, AgentSelection } from "@/lib/types";
 import type { FilterAction } from "@/lib/useFilters";
@@ -82,8 +82,11 @@ function AgentCard({
 
   return (
     <>
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm font-medium text-text">
+        <Bot size={13} className="text-text-muted" /> Agent
+      </div>
       <div className="p-2">
-        <div className="flex h-8 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2">
+        <div className="flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
           <Search size={13} className="shrink-0 text-text-muted" />
           <input
             autoFocus
@@ -190,7 +193,7 @@ function Footer({ onClear, onApply }: { onClear: () => void; onApply?: () => voi
 function CheckBox({ checked }: { checked: boolean }) {
   return (
     <span
-      className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded border ${
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
         checked ? "border-white bg-white text-black" : "border-border-strong"
       }`}
     >

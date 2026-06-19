@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Plus, Check, ChevronDown, Lock, Globe, PhoneIncoming, PhoneOutgoing, Phone, Bot, Megaphone, Flag, Activity, Fingerprint, ClipboardList, Braces, Calendar, Pencil } from "lucide-react";
+import { X, Search, Plus, Check, ChevronDown, Lock, Globe, PhoneIncoming, PhoneOutgoing, Phone, Bot, MessageSquare, Megaphone, Flag, Activity, Fingerprint, ClipboardList, Braces, Calendar, Pencil } from "lucide-react";
 import { MultiSelect } from "./MultiSelect";
 import { TokenMultiSelect } from "./TokenMultiSelect";
 import { RangeSlider } from "./RangeSlider";
@@ -40,8 +40,9 @@ export const CNT = {
 };
 
 export const TYPE_CARDS = [
-  { value: "chat", label: "Chat", icon: <Globe size={14} /> },
-  { value: "conversation", label: "Conversation", icon: <Bot size={14} /> },
+  { value: "web", label: "Web", icon: <Globe size={14} /> },
+  { value: "call", label: "Call", icon: <Phone size={14} /> },
+  { value: "chat", label: "Chat", icon: <MessageSquare size={14} /> },
   { value: "broadcast", label: "Broadcast", icon: <Megaphone size={14} /> },
 ];
 
@@ -556,12 +557,12 @@ export function DynamicGroup({
   if (gated) {
     return (
       <div className="flex justify-end">
-        <div className={`${CARD} flex w-[400px] flex-col p-3`}>
-          <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-text">
+        <div className={`${CARD} flex w-[400px] flex-col`}>
+          <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm font-medium text-text">
             {group === "postCall" ? <ClipboardList size={13} className="text-text-muted" /> : <Braces size={13} className="text-text-muted" />}
             {group === "postCall" ? "Post-call analysis" : "Context variables"}
           </div>
-          <div className="flex items-center gap-2 rounded-md border border-dashed border-border-strong bg-surface-2/40 px-3 py-2.5 text-xs text-text-muted">
+          <div className="m-3 flex items-center gap-2 rounded-md border border-dashed border-border-strong bg-surface-2/40 px-3 py-2.5 text-xs text-text-muted">
             <Lock size={12} className="shrink-0" /> Select an agent to load these fields.
           </div>
         </div>
@@ -585,7 +586,7 @@ export function DynamicGroup({
             <span className="text-[10px] tabular-nums text-text-muted">{conditions.length}</span>
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 scroll-thin" style={{ maxHeight: 360 }}>
-            {conditions.map((c) => (
+            {[...conditions].reverse().map((c) => (
               <div key={c.id} className="rounded-md border border-border bg-surface-2/30 p-2.5">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="truncate text-xs font-medium text-text">{c.key}</span>
@@ -606,12 +607,12 @@ export function DynamicGroup({
       )}
 
       {/* right card — field picker (compact fixed width) */}
-      <div className={`${CARD} flex w-[400px] shrink-0 flex-col p-3`}>
-        <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-text">
+      <div className={`${CARD} flex w-[400px] shrink-0 flex-col`}>
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm font-medium text-text">
           {group === "postCall" ? <ClipboardList size={13} className="text-text-muted" /> : <Braces size={13} className="text-text-muted" />}
           {group === "postCall" ? "Post-call analysis" : "Context variables"}
         </div>
-        <div className="flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
+        <div className="mx-3 mt-2 flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
           <Search size={13} className="text-text-muted" />
           <input
             value={q}
@@ -621,7 +622,7 @@ export function DynamicGroup({
           />
         </div>
         {visible.length > 0 ? (
-          <ul className="mt-2 max-h-[300px] overflow-auto scroll-thin">
+          <ul className="mt-2 max-h-[300px] overflow-auto px-2 pb-2 scroll-thin">
             {visible.map((f) => {
               const isAdded = added.has(f.key);
               const existing = conditions.find((c) => c.key === f.key);
@@ -655,7 +656,7 @@ export function DynamicGroup({
             })}
           </ul>
         ) : (
-          <p className="mt-2 px-1 text-xs text-text-muted">No fields match.</p>
+          <p className="mt-2 px-3 pb-3 text-xs text-text-muted">No fields match.</p>
         )}
       </div>
     </div>
@@ -683,7 +684,7 @@ export function ContextKeyInput({ conditions, dispatch }: { conditions: Conditio
             <span className="text-[10px] tabular-nums text-text-muted">{conditions.length}</span>
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 scroll-thin" style={{ maxHeight: 360 }}>
-            {conditions.map((c) => (
+            {[...conditions].reverse().map((c) => (
               <div key={c.id} className="rounded-md border border-border bg-surface-2/30 p-2.5">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="truncate text-xs font-medium text-text">{c.key}</span>
@@ -704,30 +705,32 @@ export function ContextKeyInput({ conditions, dispatch }: { conditions: Conditio
       )}
 
       {/* right card — picker */}
-      <div className={`${CARD} flex w-[400px] shrink-0 flex-col p-3`}>
-        <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-text">
+      <div className={`${CARD} flex w-[400px] shrink-0 flex-col`}>
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-sm font-medium text-text">
           <Braces size={13} className="text-text-muted" /> Context variables
         </div>
-        <div className="flex gap-2">
-          <input
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && add()}
-            placeholder="Type a variable key…"
-            className="h-9 min-w-0 flex-1 rounded-md border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted focus:border-white"
-          />
-          <button
-            type="button"
-            onClick={add}
-            disabled={!canAdd}
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border-strong px-3 text-sm text-text hover:bg-surface-2 disabled:opacity-40"
-          >
-            <Plus size={13} /> Add
-          </button>
+        <div className="p-3">
+          <div className="flex gap-2">
+            <input
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && add()}
+              placeholder="Type a variable key…"
+              className="h-9 min-w-0 flex-1 rounded-md border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted focus:border-white"
+            />
+            <button
+              type="button"
+              onClick={add}
+              disabled={!canAdd}
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border-strong px-3 text-sm text-text hover:bg-surface-2 disabled:opacity-40"
+            >
+              <Plus size={13} /> Add
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-text-muted">
+            {duplicate ? `"${trimmed}" is already added.` : "Enter a variable key (e.g. order_id)."}
+          </p>
         </div>
-        <p className="mt-2 text-xs text-text-muted">
-          {duplicate ? `"${trimmed}" is already added.` : "Enter a variable key (e.g. order_id)."}
-        </p>
       </div>
     </div>
   );
@@ -771,7 +774,7 @@ function DynamicEditor({
           value={cond.text ?? ""}
           onChange={(e) => update({ text: e.target.value })}
           placeholder="contains…"
-          className="h-9 w-full rounded-lg border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted"
+          className="h-9 w-full rounded-md border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted"
         />
       )}
 
@@ -799,7 +802,7 @@ function DynamicEditor({
       )}
 
       {mode === "boolean" && (
-        <div className="inline-flex items-center rounded-lg border border-border-strong bg-surface-2 p-0.5">
+        <div className="inline-flex items-center rounded-md border border-border-strong bg-surface-2 p-0.5">
           {[{ v: "", l: "Any" }, { v: "true", l: "Yes" }, { v: "false", l: "No" }].map((o) => {
             const on = (cond.text ?? "") === o.v;
             return (
@@ -826,7 +829,7 @@ function DynamicEditor({
 function Select<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
     <div className="relative inline-block">
-      <select value={value} onChange={(e) => onChange(e.target.value as T)} className="h-9 appearance-none rounded-lg border border-border-strong bg-surface-2 pl-3 pr-7 text-sm text-text outline-none">
+      <select value={value} onChange={(e) => onChange(e.target.value as T)} className="h-9 appearance-none rounded-md border border-border-strong bg-surface-2 pl-3 pr-7 text-sm text-text outline-none">
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -840,7 +843,7 @@ function Select<T extends string>({ value, onChange, options }: { value: T; onCh
 
 function NumInput({ value, placeholder, onChange }: { value: number | null; placeholder: string; onChange: (n: number | null) => void }) {
   return (
-    <input type="number" value={value ?? ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))} className="h-9 w-24 rounded-lg border border-border-strong bg-surface-2 px-2.5 text-sm text-text outline-none placeholder:text-text-muted" />
+    <input type="number" value={value ?? ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))} className="h-9 w-24 rounded-md border border-border-strong bg-surface-2 px-2.5 text-sm text-text outline-none placeholder:text-text-muted" />
   );
 }
 

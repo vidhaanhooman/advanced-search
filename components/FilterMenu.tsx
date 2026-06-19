@@ -15,12 +15,17 @@ import {
   Repeat2,
   PhoneIncoming,
   PhoneOutgoing,
+  ArrowLeftRight,
   Megaphone,
+  Hash,
   ListChecks,
   ClipboardList,
   Braces,
   Pin,
   PinOff,
+  Voicemail,
+  Clock,
+  Zap,
 } from "lucide-react";
 import { MultiSelect } from "./MultiSelect";
 import { RangeSlider } from "./RangeSlider";
@@ -77,6 +82,8 @@ interface Cat {
   icon: React.ReactNode;
   /** Active-state predicate — drives the trailing dot. */
   active?: (ctx: Ctx) => boolean;
+  /** Disabled-state predicate — greys out the row and blocks interaction. Receives an optional reason for the title. */
+  disabled?: (ctx: Ctx) => { reason: string } | false;
   /** Submenu body. Omit for leaf actions. */
   render?: (ctx: Ctx, p: FilterMenuProps) => React.ReactNode;
   /** Leaf action (no submenu). */
@@ -91,6 +98,23 @@ interface Cat {
   unstyled?: boolean;
 }
 
+// Per-Type allow-lists — which menu rows stay enabled for each non-call Type value.
+// "call" allows everything (no entry). When multiple Types are selected, the union
+// of their allow-lists applies. Agent is allowed for every Type.
+const TYPE_ALLOWED: Record<string, string[]> = {
+  chat: ["agent", "turns", "context"],
+  broadcast: ["agent", "to", "callSid", "campaign", "task", "outcome", "duration", "context"],
+  web: ["agent", "duration", "turns", "turnLatency", "postCall", "context"],
+};
+
+const typeDisabled = (catId: string) => (ctx: Ctx) => {
+  const vals = ctx.cond("channel")?.values ?? [];
+  if (!vals.length || vals.includes("call")) return false as const;
+  const allowed = new Set(vals.flatMap((v) => TYPE_ALLOWED[v] ?? []));
+  if (allowed.has(catId)) return false as const;
+  return { reason: "Not applicable for the selected Type." };
+};
+
 // Active helper: does the condition for this field/key carry a real value?
 const isOn = (ctx: Ctx, field: ConditionField, key?: string) => {
   const c = ctx.cond(field, key);
@@ -103,18 +127,74 @@ interface Section {
   items: Cat[];
 }
 
+// Quick-filter presets — each applies a pre-baked set of conditions in one click.
+const QUICK_FILTERS: { id: string; label: string; icon: React.ReactNode; conditions: Condition[] }[] = [
+  {
+    id: "qf:connected-calls",
+    label: "Connected calls",
+    icon: <PhoneIncoming size={15} />,
+    conditions: [
+      { id: "channel", field: "channel", values: ["call"] },
+      { id: "outcome", field: "outcome", values: ["connected"] },
+    ],
+  },
+  {
+    id: "qf:failed-calls",
+    label: "Failed calls",
+    icon: <PhoneOff size={15} />,
+    conditions: [
+      { id: "channel", field: "channel", values: ["call"] },
+      { id: "callStatus", field: "callStatus", values: ["failed", "busy", "no_answer"] },
+    ],
+  },
+  {
+    id: "qf:voicemails",
+    label: "Voicemails",
+    icon: <Voicemail size={15} />,
+    conditions: [{ id: "endReason", field: "endReason", values: ["voicemail"] }],
+  },
+  {
+    id: "qf:long-calls",
+    label: "Long calls (>3 min)",
+    icon: <Clock size={15} />,
+    conditions: [{ id: "duration", field: "duration", num: { op: "between", value: 180, value2: null } }],
+  },
+];
+
 const SECTIONS: Section[] = [
   // — source —
   { items: [
+    {
+      id: "quickFilters",
+      label: "Quick filters",
+      icon: <Zap size={15} />,
+      render: (_ctx, p) => (
+        <div className="flex flex-col">
+          {QUICK_FILTERS.map((q) => (
+            <button
+              key={q.id}
+              type="button"
+              onClick={() => {
+                p.dispatch({ type: "SET_CONDITIONS", conditions: q.conditions });
+                p.close();
+              }}
+              className="flex w-full items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm text-text-dim transition-colors hover:bg-surface-2/60 hover:text-text"
+            >
+              <span className="shrink-0 text-text-muted">{q.icon}</span>
+              <span className="flex-1 truncate">{q.label}</span>
+            </button>
+          ))}
+        </div>
+      ),
+    },
     {
       id: "type",
       label: "Type",
       icon: <Phone size={15} />,
       narrow: true,
-      bare: true,
       active: (ctx) => isOn(ctx, "channel"),
       render: (ctx) => (
-        <div className="flex flex-col gap-1 p-1">
+        <div className="flex flex-col gap-1">
           {TYPE_CARDS.map((c) => {
             const on = (ctx.cond("channel")?.values ?? []).includes(c.value);
             return (
@@ -137,12 +217,12 @@ const SECTIONS: Section[] = [
     {
       id: "direction",
       label: "Direction",
-      icon: <PhoneIncoming size={15} />,
+      icon: <ArrowLeftRight size={15} />,
       narrow: true,
-      bare: true,
+      disabled: typeDisabled("direction"),
       active: (ctx) => isOn(ctx, "direction"),
       render: (ctx) => (
-        <div className="flex flex-col gap-1 p-1">
+        <div className="flex flex-col gap-1">
           {DIRECTION_CARDS.map((d) => {
             const on = (ctx.cond("direction")?.values ?? []).includes(d.value);
             return (
@@ -177,21 +257,32 @@ const SECTIONS: Section[] = [
     {
       id: "from",
       label: "Caller",
-      icon: <PhoneIncoming size={15} />,
+      icon: <PhoneOutgoing size={15} />,
+      disabled: typeDisabled("from"),
       active: (ctx) => isOn(ctx, "from"),
       render: (ctx) => <TextLeaf ctx={ctx} field="from" />,
     },
     {
       id: "to",
       label: "Callee",
-      icon: <PhoneOutgoing size={15} />,
+      icon: <PhoneIncoming size={15} />,
+      disabled: typeDisabled("to"),
       active: (ctx) => isOn(ctx, "to"),
       render: (ctx) => <TextLeaf ctx={ctx} field="to" />,
+    },
+    {
+      id: "callSid",
+      label: "Provider call ID",
+      icon: <Hash size={15} />,
+      disabled: typeDisabled("callSid"),
+      active: (ctx) => isOn(ctx, "callSid"),
+      render: (ctx) => <TextLeaf ctx={ctx} field="callSid" />,
     },
     {
       id: "campaign",
       label: "Campaign",
       icon: <Megaphone size={15} />,
+      disabled: typeDisabled("campaign"),
       active: (ctx) => isOn(ctx, "campaign"),
       render: (ctx) => <TextLeaf ctx={ctx} field="campaign" />,
     },
@@ -199,6 +290,7 @@ const SECTIONS: Section[] = [
       id: "task",
       label: "Task",
       icon: <ListChecks size={15} />,
+      disabled: typeDisabled("task"),
       active: (ctx) => isOn(ctx, "task"),
       render: (ctx) => <TextLeaf ctx={ctx} field="task" />,
     },
@@ -209,6 +301,7 @@ const SECTIONS: Section[] = [
       id: "outcome",
       label: "Outcome",
       icon: <Flag size={15} />,
+      disabled: typeDisabled("outcome"),
       active: (ctx) => isOn(ctx, "outcome"),
       render: (ctx) => (
         <SearchableCheckList
@@ -223,6 +316,7 @@ const SECTIONS: Section[] = [
       id: "endReason",
       label: "End reason",
       icon: <PhoneOff size={15} />,
+      disabled: typeDisabled("endReason"),
       active: (ctx) => isOn(ctx, "endReason"),
       render: (ctx) => (
         <MultiSelect
@@ -240,6 +334,7 @@ const SECTIONS: Section[] = [
       id: "duration",
       label: "Call duration",
       icon: <Timer size={15} />,
+      disabled: typeDisabled("duration"),
       active: (ctx) => isOn(ctx, "duration"),
       render: (ctx) => (
         <RangeSlider min={RANGE.duration.min} max={RANGE.duration.max} step={RANGE.duration.step} unit={RANGE.duration.unit} value={ctx.cond("duration")?.num ?? null} onChange={(num) => ctx.setNum("duration", num)} />
@@ -249,6 +344,7 @@ const SECTIONS: Section[] = [
       id: "turns",
       label: "Turns",
       icon: <MessageSquare size={15} />,
+      disabled: typeDisabled("turns"),
       active: (ctx) => isOn(ctx, "turns"),
       render: (ctx) => (
         <RangeSlider min={RANGE.turns.min} max={RANGE.turns.max} step={RANGE.turns.step} value={ctx.cond("turns")?.num ?? null} onChange={(num) => ctx.setNum("turns", num)} />
@@ -258,6 +354,7 @@ const SECTIONS: Section[] = [
       id: "turnLatency",
       label: "Turn latency",
       icon: <Gauge size={15} />,
+      disabled: typeDisabled("turnLatency"),
       active: (ctx) => isOn(ctx, "turnLatency"),
       render: (ctx) => (
         <RangeSlider min={RANGE.turnLatency.min} max={RANGE.turnLatency.max} step={RANGE.turnLatency.step} unit={RANGE.turnLatency.unit} value={ctx.cond("turnLatency")?.num ?? null} onChange={(num) => ctx.setNum("turnLatency", num)} />
@@ -267,6 +364,7 @@ const SECTIONS: Section[] = [
       id: "attempt",
       label: "Attempt",
       icon: <Repeat2 size={15} />,
+      disabled: typeDisabled("attempt"),
       active: (ctx) => isOn(ctx, "attempt"),
       render: (ctx) => (
         <PillGroup value={ctx.cond("attempt")?.num ?? null} onChange={(num) => ctx.setNum("attempt", num ?? { op: "=", value: null, value2: null })} />
@@ -282,6 +380,7 @@ const SECTIONS: Section[] = [
       wide: true,
       bare: true,
       unstyled: true,
+      disabled: typeDisabled("postCall"),
       active: (ctx) => ctx.filters.conditions.some((c) => c.field === "postCall" && conditionIsActive(c)),
       render: (ctx) => {
         const agents = ctx.cond("agent")?.agents ?? {};
@@ -423,11 +522,16 @@ export function FilterMenu(props: FilterMenuProps) {
               const on = cat.active?.(ctx) ?? false;
               const isActive = active === cat.id;
               const leaf = !cat.render;
+              const disabledResult = cat.disabled?.(ctx);
+              const isDisabled = !!disabledResult;
               return (
                 <button
                   key={cat.id}
                   type="button"
+                  disabled={isDisabled}
+                  title={disabledResult ? disabledResult.reason : undefined}
                   onClick={(e) => {
+                    if (isDisabled) return;
                     if (leaf) {
                       cat.onSelect?.(ctx, props);
                       close();
@@ -437,15 +541,22 @@ export function FilterMenu(props: FilterMenuProps) {
                       openAt(cat.id, e.currentTarget);
                     }
                   }}
-                  onMouseEnter={(e) => !leaf && openAt(cat.id, e.currentTarget)}
+                  onMouseEnter={(e) => {
+                    if (isDisabled || leaf) return;
+                    openAt(cat.id, e.currentTarget);
+                  }}
                   className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
-                    isActive ? "bg-surface-2 text-text" : "text-text-dim hover:bg-surface-2/60 hover:text-text"
+                    isDisabled
+                      ? "cursor-not-allowed text-text-muted/50"
+                      : isActive
+                      ? "bg-surface-2 text-text"
+                      : "text-text-dim hover:bg-surface-2/60 hover:text-text"
                   }`}
                 >
-                  <span className={`shrink-0 ${on ? "text-text" : "text-text-muted"}`}>{cat.icon}</span>
+                  <span className={`shrink-0 ${isDisabled ? "text-text-muted/50" : on ? "text-text" : "text-text-muted"}`}>{cat.icon}</span>
                   <span className="flex-1 truncate">{cat.label}</span>
-                  {on && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
-                  {!leaf && <ChevronRight size={14} className="shrink-0 text-text-muted" />}
+                  {on && !isDisabled && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />}
+                  {!leaf && <ChevronRight size={14} className={`shrink-0 ${isDisabled ? "text-text-muted/50" : "text-text-muted"}`} />}
                 </button>
               );
             })}

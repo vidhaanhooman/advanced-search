@@ -16,6 +16,7 @@ export const CONDITION_LABEL: Record<string, string> = {
   attempt: "Attempt",
   campaign: "Campaign ID",
   task: "Task ID",
+  callSid: "Provider call ID",
 };
 
 // The fixed "BASE" catalog (left pane of the filter modal).

@@ -156,6 +156,7 @@ export type ConditionField =
   | "attempt"
   | "campaign"
   | "task"
+  | "callSid"
   | "postCall"
   | "context";
 
