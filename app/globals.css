@@ -42,6 +42,14 @@ body {
   border-color: rgb(var(--border));
 }
 
+/* Hide scrollbar entirely (e.g. for the time-picker wheels where rails are visible). */
+.scroll-hidden {
+  scrollbar-width: none;
+}
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 /* Minimal scrollbars in panels — Firefox + WebKit. */
 .scroll-thin {
   scrollbar-width: thin;

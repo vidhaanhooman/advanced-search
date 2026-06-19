@@ -7,6 +7,7 @@ import { ToolbarButton } from "./ToolbarButton";
 import { FilterPopup } from "./FilterPopup";
 import { FilterMenu } from "./FilterMenu";
 import { RangeCalendar } from "./RangeCalendar";
+import { TimeField } from "./TimeField";
 import { datePresetLabel, dateWindow } from "@/lib/filters";
 import {
   type DatePreset,
@@ -141,24 +142,16 @@ export function Toolbar({
                   onChange={(from, to) => applyRange(from, to, fromTime, toTime)}
                 />
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="block rounded-md border border-border-strong bg-surface-2 px-2.5 py-1.5">
-                    <span className="block text-[10px] font-medium uppercase tracking-wide text-text-muted">Start time</span>
-                    <input
-                      type="time"
-                      value={fromTime}
-                      onChange={(e) => applyRange(fromDate, toDate, e.target.value || "00:00", toTime)}
-                      className="w-full bg-transparent text-sm text-text outline-none [color-scheme:dark]"
-                    />
-                  </label>
-                  <label className="block rounded-md border border-border-strong bg-surface-2 px-2.5 py-1.5">
-                    <span className="block text-[10px] font-medium uppercase tracking-wide text-text-muted">End time</span>
-                    <input
-                      type="time"
-                      value={toTime}
-                      onChange={(e) => applyRange(fromDate, toDate, fromTime, e.target.value || "23:59")}
-                      className="w-full bg-transparent text-sm text-text outline-none [color-scheme:dark]"
-                    />
-                  </label>
+                  <TimeField
+                    label="Start time"
+                    value={fromTime}
+                    onChange={(v) => applyRange(fromDate, toDate, v || "00:00", toTime)}
+                  />
+                  <TimeField
+                    label="End time"
+                    value={toTime}
+                    onChange={(v) => applyRange(fromDate, toDate, fromTime, v || "23:59")}
+                  />
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-2">
                   <button
