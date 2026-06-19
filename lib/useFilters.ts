@@ -52,6 +52,7 @@ function newCondition(field: ConditionField, key?: string, vtype?: FieldType): C
     case "agent":
       return { ...base, agents: {} };
     case "channel":
+    case "direction":
     case "outcome":
     case "callStatus":
     case "endReason":

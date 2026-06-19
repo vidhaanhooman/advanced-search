@@ -4,6 +4,7 @@ import type { ConditionField } from "./types";
 export const CONDITION_LABEL: Record<string, string> = {
   agent: "Agent",
   channel: "Type",
+  direction: "Direction",
   duration: "Call duration",
   from: "Caller (from)",
   to: "Callee (to)",

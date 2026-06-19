@@ -9,7 +9,7 @@ import type {
   SearchField,
 } from "./types";
 import { SEARCH_FIELDS } from "./types";
-import { NOW } from "./mockConversations";
+import { NOW, agentDef } from "./mockConversations";
 import { CONDITION_LABEL } from "./catalog";
 
 /** Value of a conversation for a scoped-search field. */
@@ -114,21 +114,27 @@ function matchesCondition(c: Conversation, cond: Condition): boolean {
       return !versions.length || versions.includes(c.version);
     }
     case "channel": {
-      // Combined channel/direction: web, inbound (call), outbound (call).
+      // Type filter: chat (web), conversation (call+conversation agent), broadcast (call+broadcast agent).
       const v = cond.values ?? [];
       if (!v.length) return true;
+      const kind = agentDef(c.agent)?.kind;
       return v.some((val) => {
         switch (val) {
-          case "web":
+          case "chat":
             return c.type === "web";
-          case "inbound":
-            return c.type === "call" && c.callInfo.direction === "inbound";
-          case "outbound":
-            return c.type === "call" && c.callInfo.direction === "outbound";
+          case "conversation":
+            return c.type === "call" && kind === "conversation";
+          case "broadcast":
+            return c.type === "call" && kind === "broadcast";
           default:
             return false;
         }
       });
+    }
+    case "direction": {
+      const v = cond.values ?? [];
+      if (!v.length) return true;
+      return !!c.callInfo.direction && v.includes(c.callInfo.direction);
     }
     case "outcome": {
       const v = (cond.values ?? []) as Outcome[];
@@ -230,6 +236,7 @@ export function conditionIsActive(cond: Condition): boolean {
     case "agent":
       return Object.keys(cond.agents ?? {}).length > 0;
     case "channel":
+    case "direction":
     case "outcome":
     case "callStatus":
     case "endReason":
@@ -289,6 +296,7 @@ export function conditionLabel(cond: Condition): string | null {
       return `Agent: ${first}${vlabel}${extra}`;
     }
     case "channel":
+    case "direction":
     case "outcome":
     case "callStatus":
     case "endReason":

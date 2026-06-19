@@ -39,40 +39,29 @@ export function AgentPopout({ agents, dispatch, onApply }: AgentPopoutProps) {
     dispatch({ type: "UPDATE_CONDITION", id: "agent", patch: { agents: next } });
   };
   const selectAgent = (name: string) => {
-    if (name === selectedName) {
-      setAgents({});
-      return;
-    }
-    // Default to ALL versions selected when picking a new agent.
-    const def = AGENTS.find((a) => a.name === name);
-    setAgents({ [name]: def ? def.versions.map((v) => v.id) : [] });
+    if (name === selectedName) setAgents({});
+    // Default: no versions checked — empty array already matches all versions in filter logic.
+    else setAgents({ [name]: [] });
   };
   const toggleVersion = (vid: string) => {
     if (!selectedName) return;
     dispatch({ type: "TOGGLE_AGENT_VERSION", id: "agent", agent: selectedName, version: vid });
   };
-  const toggleAll = () => {
-    if (!selectedName || !selectedDef) return;
-    const all = selectedDef.versions.map((v) => v.id);
-    setAgents({ [selectedName]: pickedVersions.length === all.length ? [] : all });
-  };
   const clear = () => dispatch({ type: "REMOVE_CONDITION", id: "agent" });
 
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-stretch justify-end gap-1">
       {showVersions && (
-        <div className={`${CARD} w-[220px] shrink-0`}>
+        <div className={`${CARD} flex w-[220px] shrink-0 flex-col`}>
           <VersionCard
-            agentName={selectedName!}
             versions={selectedDef!.versions}
             picked={pickedVersions}
             onToggle={toggleVersion}
-            onToggleAll={toggleAll}
           />
         </div>
       )}
 
-      <div className={`${CARD} flex min-w-0 flex-1 flex-col`}>
+      <div className={`${CARD} flex w-[400px] shrink-0 flex-col`}>
         <AgentCard selectedName={selectedName} onPick={selectAgent} />
         <Footer onClear={clear} onApply={onApply} />
       </div>
@@ -137,40 +126,21 @@ function AgentCard({
 }
 
 function VersionCard({
-  agentName,
   versions,
   picked,
   onToggle,
-  onToggleAll,
 }: {
-  agentName: string;
   versions: { id: string; name: string }[];
   picked: string[];
   onToggle: (vid: string) => void;
-  onToggleAll: () => void;
 }) {
   return (
-    <div>
-      <div className="border-b border-border px-3 py-2">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Versions</div>
-        <div className="mt-0.5 truncate text-xs text-text-dim">{agentName}</div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Versions</span>
+        <span className="text-[10px] tabular-nums text-text-muted">{picked.length}/{versions.length}</span>
       </div>
-      <ul className="max-h-[300px] overflow-y-auto px-1 py-1 scroll-thin">
-        <li>
-          <button
-            type="button"
-            onClick={onToggleAll}
-            className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface-2/60"
-          >
-            <span className="flex items-center gap-2.5">
-              <CheckBox checked={picked.length === versions.length && versions.length > 0} />
-              <span className="text-sm font-medium text-text">All</span>
-            </span>
-            <span className="text-[10px] tabular-nums text-text-muted">
-              {picked.length}/{versions.length}
-            </span>
-          </button>
-        </li>
+      <ul className="min-h-0 flex-1 overflow-y-auto px-1 py-1 scroll-thin">
         {versions.map((v) => {
           const on = picked.includes(v.id);
           return (
@@ -187,6 +157,9 @@ function VersionCard({
           );
         })}
       </ul>
+      <div className="border-t border-border px-3 py-1.5 text-[10px] text-text-muted">
+        Select none to match all versions.
+      </div>
     </div>
   );
 }

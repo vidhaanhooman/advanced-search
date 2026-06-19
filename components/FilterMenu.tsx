@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
+  Check,
+  Search,
   ChevronRight,
   Phone,
   Bot,
   Flag,
-  CheckCircle2,
   PhoneOff,
   Timer,
   MessageSquare,
@@ -18,12 +19,10 @@ import {
   ListChecks,
   ClipboardList,
   Braces,
-  Fingerprint,
   Pin,
   PinOff,
 } from "lucide-react";
 import { MultiSelect } from "./MultiSelect";
-import { TokenMultiSelect } from "./TokenMultiSelect";
 import { RangeSlider } from "./RangeSlider";
 import { PillGroup } from "./PillGroup";
 import { AgentPopout } from "./AgentPopout";
@@ -31,14 +30,14 @@ import {
   ContextKeyInput,
   DynamicGroup,
   TYPE_CARDS,
+  DIRECTION_CARDS,
   RANGE,
   CNT,
 } from "./FilterPopup";
-import { OUTCOME_DOT, STATUS_DOT } from "@/lib/display";
+import { OUTCOME_DOT } from "@/lib/display";
 import { agentDef } from "@/lib/mockConversations";
 import { conditionIsActive } from "@/lib/filters";
 import {
-  CALL_STATUSES,
   END_REASONS,
   OUTCOMES,
   type Condition,
@@ -136,6 +135,34 @@ const SECTIONS: Section[] = [
       ),
     },
     {
+      id: "direction",
+      label: "Direction",
+      icon: <PhoneIncoming size={15} />,
+      narrow: true,
+      bare: true,
+      active: (ctx) => isOn(ctx, "direction"),
+      render: (ctx) => (
+        <div className="flex flex-col gap-1 p-1">
+          {DIRECTION_CARDS.map((d) => {
+            const on = (ctx.cond("direction")?.values ?? []).includes(d.value);
+            return (
+              <button
+                key={d.value}
+                type="button"
+                onClick={() => ctx.toggleValue("direction", d.value)}
+                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors ${
+                  on ? "bg-surface-2 text-text" : "text-text-dim hover:bg-surface-2/60 hover:text-text"
+                }`}
+              >
+                {d.icon}
+                {d.label}
+              </button>
+            );
+          })}
+        </div>
+      ),
+    },
+    {
       id: "agent",
       label: "Agent",
       icon: <Bot size={15} />,
@@ -147,6 +174,34 @@ const SECTIONS: Section[] = [
         <AgentPopout agents={ctx.cond("agent")?.agents ?? {}} dispatch={ctx.dispatch} onApply={p.close} />
       ),
     },
+    {
+      id: "from",
+      label: "Caller",
+      icon: <PhoneIncoming size={15} />,
+      active: (ctx) => isOn(ctx, "from"),
+      render: (ctx) => <TextLeaf ctx={ctx} field="from" />,
+    },
+    {
+      id: "to",
+      label: "Callee",
+      icon: <PhoneOutgoing size={15} />,
+      active: (ctx) => isOn(ctx, "to"),
+      render: (ctx) => <TextLeaf ctx={ctx} field="to" />,
+    },
+    {
+      id: "campaign",
+      label: "Campaign",
+      icon: <Megaphone size={15} />,
+      active: (ctx) => isOn(ctx, "campaign"),
+      render: (ctx) => <TextLeaf ctx={ctx} field="campaign" />,
+    },
+    {
+      id: "task",
+      label: "Task",
+      icon: <ListChecks size={15} />,
+      active: (ctx) => isOn(ctx, "task"),
+      render: (ctx) => <TextLeaf ctx={ctx} field="task" />,
+    },
   ] },
   // — outcome & status —
   { title: "Outcome & status", items: [
@@ -156,25 +211,11 @@ const SECTIONS: Section[] = [
       icon: <Flag size={15} />,
       active: (ctx) => isOn(ctx, "outcome"),
       render: (ctx) => (
-        <TokenMultiSelect
-          placeholder="Select outcomes…"
+        <SearchableCheckList
+          placeholder="Search outcomes…"
           options={OUTCOMES.map((o) => ({ value: o, label: o, dot: OUTCOME_DOT[o], count: CNT.outcome[o] }))}
           selected={ctx.cond("outcome")?.values ?? []}
           onToggle={(v) => ctx.toggleValue("outcome", v)}
-        />
-      ),
-    },
-    {
-      id: "callStatus",
-      label: "Call status",
-      icon: <CheckCircle2 size={15} />,
-      active: (ctx) => isOn(ctx, "callStatus"),
-      render: (ctx) => (
-        <MultiSelect
-          layout="list"
-          options={CALL_STATUSES.map((s) => ({ value: s, label: s, dot: STATUS_DOT[s], count: CNT.callStatus[s] }))}
-          selected={ctx.cond("callStatus")?.values ?? []}
-          onToggle={(v) => ctx.toggleValue("callStatus", v)}
         />
       ),
     },
@@ -232,29 +273,15 @@ const SECTIONS: Section[] = [
       ),
     },
   ] },
-  // — identity (single combined entry) —
-  { items: [
-    {
-      id: "identity",
-      label: "Identity",
-      icon: <Fingerprint size={15} />,
-      active: (ctx) => isOn(ctx, "from") || isOn(ctx, "to") || isOn(ctx, "campaign") || isOn(ctx, "task"),
-      render: (ctx) => (
-        <div className="space-y-3">
-          <IdentityRow ctx={ctx} field="from" label="Caller" icon={<PhoneIncoming size={13} />} />
-          <IdentityRow ctx={ctx} field="to" label="Callee" icon={<PhoneOutgoing size={13} />} />
-          <IdentityRow ctx={ctx} field="campaign" label="Campaign" icon={<Megaphone size={13} />} />
-          <IdentityRow ctx={ctx} field="task" label="Task" icon={<ListChecks size={13} />} />
-        </div>
-      ),
-    },
-  ] },
   // — dynamic —
   { title: "Dynamic fields", items: [
     {
       id: "postCall",
       label: "Post-call analysis",
       icon: <ClipboardList size={15} />,
+      wide: true,
+      bare: true,
+      unstyled: true,
       active: (ctx) => ctx.filters.conditions.some((c) => c.field === "postCall" && conditionIsActive(c)),
       render: (ctx) => {
         const agents = ctx.cond("agent")?.agents ?? {};
@@ -268,6 +295,9 @@ const SECTIONS: Section[] = [
       id: "context",
       label: "Context variables",
       icon: <Braces size={15} />,
+      wide: true,
+      bare: true,
+      unstyled: true,
       active: (ctx) => ctx.filters.conditions.some((c) => c.field === "context" && conditionIsActive(c)),
       render: (ctx) => (
         <ContextKeyInput conditions={ctx.filters.conditions.filter((c) => c.field === "context")} dispatch={ctx.dispatch} />
@@ -279,24 +309,6 @@ const SECTIONS: Section[] = [
 function dedupeFields(fields: FieldDef[]): FieldDef[] {
   const seen = new Set<string>();
   return fields.filter((f) => (seen.has(f.key) ? false : (seen.add(f.key), true)));
-}
-
-function IdentityRow({ ctx, field, label, icon }: { ctx: Ctx; field: ConditionField; label: string; icon: React.ReactNode }) {
-  const value = ctx.cond(field)?.text ?? "";
-  return (
-    <div>
-      <div className="mb-1 flex items-center gap-2 text-xs text-text-muted">
-        <span className="shrink-0">{icon}</span>
-        {label}
-      </div>
-      <input
-        value={value}
-        onChange={(e) => ctx.setText(field, e.target.value)}
-        placeholder="contains…"
-        className="h-9 w-full rounded-lg border border-border-strong bg-surface-2 px-2.5 text-sm text-text outline-none placeholder:text-text-muted"
-      />
-    </div>
-  );
 }
 
 function TextLeaf({ ctx, field }: { ctx: Ctx; field: ConditionField }) {
@@ -376,29 +388,44 @@ export function FilterMenu(props: FilterMenuProps) {
 
   return (
     <div className="relative" ref={rootRef}>
-      {/* header */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-        <span className="text-sm text-text-muted">Add filter…</span>
-        <div className="flex items-center gap-1.5">
-          {onTogglePin && (
-            <button
-              type="button"
-              onClick={onTogglePin}
-              title={pinned ? "Unpin — close on outside click" : "Pin open for testing"}
-              className={`flex h-5 items-center gap-1 rounded border px-1.5 text-[10px] font-medium transition-colors ${
-                pinned
-                  ? "border-accent/60 bg-accent/15 text-accent"
-                  : "border-border-strong bg-surface-2 text-text-muted hover:text-text"
-              }`}
-            >
-              {pinned ? <Pin size={10} /> : <PinOff size={10} />}
-              {pinned ? "Pinned" : "Pin"}
-            </button>
-          )}
-          <kbd className="rounded border border-border-strong bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-text-muted">F</kbd>
-        </div>
+      {/* header — active count + Clear all on the left, Pin chip on the right */}
+      <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+        {(() => {
+          const activeCount = filters.conditions.filter(conditionIsActive).length;
+          return activeCount > 0 ? (
+            <div className="flex items-center gap-1.5 pl-1 text-[11px] text-text-muted">
+              <span>
+                <span className="font-medium text-text">{activeCount}</span> active
+              </span>
+              <span className="text-text-dim">·</span>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "CLEAR_CONDITIONS" })}
+                className="text-text-dim hover:text-text"
+              >
+                Clear all
+              </button>
+            </div>
+          ) : (
+            <span className="pl-1 text-[11px] text-text-dim">No active filters</span>
+          );
+        })()}
+        {onTogglePin && (
+          <button
+            type="button"
+            onClick={onTogglePin}
+            title={pinned ? "Unpin — close on outside click" : "Pin open for testing"}
+            className={`flex h-5 items-center gap-1 rounded border px-1.5 text-[10px] font-medium transition-colors ${
+              pinned
+                ? "border-accent/60 bg-accent/15 text-accent"
+                : "border-border-strong bg-surface-2 text-text-muted hover:text-text"
+            }`}
+          >
+            {pinned ? <Pin size={10} /> : <PinOff size={10} />}
+            {pinned ? "Pinned" : "Pin"}
+          </button>
+        )}
       </div>
-      <div className="h-px bg-border" />
 
       {/* category list — sized to fit every row without scroll */}
       <div className="py-1">
@@ -449,7 +476,7 @@ export function FilterMenu(props: FilterMenuProps) {
         <div
           ref={recheckAnchor}
           style={{
-            width: activeCat.wide ? 580 : activeCat.narrow ? 220 : 320,
+            width: activeCat.wide ? 720 : activeCat.narrow ? 220 : 320,
             ...(anchor.mode === "top" ? { top: anchor.offset } : { bottom: anchor.offset }),
           }}
           className={`absolute right-full mr-2 ${
@@ -468,6 +495,70 @@ export function FilterMenu(props: FilterMenuProps) {
           {activeCat.render(ctx, props)}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Search + checkbox list, matching the Agent flyout's search style. Reused by Outcome. */
+interface CheckOption { value: string; label: string; dot?: string; count?: number }
+function SearchableCheckList({
+  placeholder,
+  options,
+  selected,
+  onToggle,
+}: {
+  placeholder: string;
+  options: CheckOption[];
+  selected: string[];
+  onToggle: (v: string) => void;
+}) {
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const list = useMemo(
+    () => options.filter((o) => o.label.toLowerCase().includes(query)),
+    [options, query]
+  );
+  return (
+    <div className="space-y-2">
+      <div className="flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
+        <Search size={13} className="shrink-0 text-text-muted" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted"
+        />
+      </div>
+      <ul className="max-h-56 overflow-y-auto pr-1 scroll-thin">
+        {list.map((o) => {
+          const on = selected.includes(o.value);
+          return (
+            <li key={o.value}>
+              <button
+                type="button"
+                onClick={() => onToggle(o.value)}
+                className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition-colors ${
+                  on ? "bg-surface-2" : "hover:bg-surface-2/60"
+                }`}
+              >
+                <span
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                    on ? "border-white bg-white text-black" : "border-border-strong"
+                  }`}
+                >
+                  {on && <Check size={11} strokeWidth={3} />}
+                </span>
+                {o.dot && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${o.dot}`} />}
+                <span className={`flex-1 truncate text-sm ${on ? "text-text" : "text-text-dim"}`}>{o.label}</span>
+                {o.count != null && (
+                  <span className="shrink-0 tabular-nums text-xs text-text-muted">{o.count}</span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+        {list.length === 0 && <li className="px-3 py-4 text-center text-xs text-text-muted">No matches.</li>}
+      </ul>
     </div>
   );
 }

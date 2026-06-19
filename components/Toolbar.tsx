@@ -178,8 +178,11 @@ export function Toolbar({
         >
           {({ close }) => (
             <div className="flex">
-              {/* preset sidebar */}
-              <div className="w-44 shrink-0 space-y-0.5 border-r border-border p-2">
+              {/* preset sidebar — matches FilterMenu row style */}
+              <div className="w-40 shrink-0 border-r border-border py-1">
+                <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                  Quick range
+                </div>
                 {DATE_PRESETS.map((p) => {
                   const on = filters.date.preset === p.value;
                   return (
@@ -187,26 +190,27 @@ export function Toolbar({
                       key={String(p.value)}
                       type="button"
                       onClick={() => dispatch({ type: "DATE_PRESET", preset: p.value })}
-                      className={`block w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors ${
                         on ? "bg-surface-2 text-text" : "text-text-dim hover:bg-surface-2/60 hover:text-text"
                       }`}
                     >
-                      {p.label}
+                      <span className="flex-1 truncate">{p.label}</span>
+                      {on && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
                     </button>
                   );
                 })}
               </div>
 
               {/* calendar + time + actions */}
-              <div className="flex-1 space-y-3 p-4">
+              <div className="flex-1 space-y-3 p-3">
                 <RangeCalendar
                   from={fromDate}
                   to={toDate}
                   onChange={(from, to) => applyRange(from, to, fromTime, toTime)}
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block rounded-lg border border-border-strong bg-surface-2 px-3 py-2">
-                    <span className="block text-[11px] text-text-muted">Start time</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block rounded-md border border-border-strong bg-surface-2 px-2.5 py-1.5">
+                    <span className="block text-[10px] font-medium uppercase tracking-wide text-text-muted">Start time</span>
                     <input
                       type="time"
                       value={fromTime}
@@ -214,8 +218,8 @@ export function Toolbar({
                       className="w-full bg-transparent text-sm text-text outline-none [color-scheme:dark]"
                     />
                   </label>
-                  <label className="block rounded-lg border border-border-strong bg-surface-2 px-3 py-2">
-                    <span className="block text-[11px] text-text-muted">End time</span>
+                  <label className="block rounded-md border border-border-strong bg-surface-2 px-2.5 py-1.5">
+                    <span className="block text-[10px] font-medium uppercase tracking-wide text-text-muted">End time</span>
                     <input
                       type="time"
                       value={toTime}
@@ -224,18 +228,18 @@ export function Toolbar({
                     />
                   </label>
                 </div>
-                <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center justify-between border-t border-border pt-2">
                   <button
                     type="button"
                     onClick={() => dispatch({ type: "DATE_PRESET", preset: null })}
-                    className="rounded-md px-3 py-2 text-sm text-text-dim hover:bg-surface-2 hover:text-text"
+                    className="rounded-md border border-border-strong px-3 py-1.5 text-xs text-text-dim hover:text-text"
                   >
                     Clear
                   </button>
                   <button
                     type="button"
                     onClick={close}
-                    className="rounded-md bg-white px-5 py-2 text-sm font-medium text-black hover:bg-white/90"
+                    className="rounded-md bg-white px-4 py-1.5 text-xs font-medium text-black hover:bg-white/90"
                   >
                     Apply
                   </button>

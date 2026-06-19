@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Plus, Check, ChevronDown, Lock, Globe, PhoneIncoming, PhoneOutgoing, Phone, Bot, Flag, Activity, Fingerprint, ClipboardList, Braces } from "lucide-react";
+import { X, Search, Plus, Check, ChevronDown, Lock, Globe, PhoneIncoming, PhoneOutgoing, Phone, Bot, Megaphone, Flag, Activity, Fingerprint, ClipboardList, Braces, Calendar, Pencil } from "lucide-react";
 import { MultiSelect } from "./MultiSelect";
 import { TokenMultiSelect } from "./TokenMultiSelect";
 import { RangeSlider } from "./RangeSlider";
@@ -40,7 +40,12 @@ export const CNT = {
 };
 
 export const TYPE_CARDS = [
-  { value: "web", label: "Web", icon: <Globe size={14} /> },
+  { value: "chat", label: "Chat", icon: <Globe size={14} /> },
+  { value: "conversation", label: "Conversation", icon: <Bot size={14} /> },
+  { value: "broadcast", label: "Broadcast", icon: <Megaphone size={14} /> },
+];
+
+export const DIRECTION_CARDS = [
   { value: "inbound", label: "Inbound", icon: <PhoneIncoming size={14} /> },
   { value: "outbound", label: "Outbound", icon: <PhoneOutgoing size={14} /> },
 ];
@@ -530,6 +535,9 @@ function VersionPicker({
 // Post-call / context — search-to-add picker + typed condition rows
 // ---------------------------------------------------------------------------
 
+// Card chrome shared between the picker card and the added-editors card.
+const CARD = "rounded-lg border border-border-strong bg-surface shadow-xl shadow-black/40";
+
 export function DynamicGroup({
   group,
   gated,
@@ -547,8 +555,16 @@ export function DynamicGroup({
 
   if (gated) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-dashed border-border-strong bg-surface-2/40 px-3 py-2.5 text-xs text-text-muted">
-        <Lock size={12} /> Select an agent to load these fields.
+      <div className="flex justify-end">
+        <div className={`${CARD} flex w-[400px] flex-col p-3`}>
+          <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-text">
+            {group === "postCall" ? <ClipboardList size={13} className="text-text-muted" /> : <Braces size={13} className="text-text-muted" />}
+            {group === "postCall" ? "Post-call analysis" : "Context variables"}
+          </div>
+          <div className="flex items-center gap-2 rounded-md border border-dashed border-border-strong bg-surface-2/40 px-3 py-2.5 text-xs text-text-muted">
+            <Lock size={12} className="shrink-0" /> Select an agent to load these fields.
+          </div>
+        </div>
       </div>
     );
   }
@@ -556,49 +572,92 @@ export function DynamicGroup({
   const byKey = Object.fromEntries(fields.map((f) => [f.key, f]));
   const added = new Set(conditions.map((c) => c.key));
   const query = q.trim().toLowerCase();
-  const available = fields.filter((f) => !added.has(f.key) && f.key.toLowerCase().includes(query));
+  // Show ALL matching fields; already-added ones render checked + greyed out (not removed from the list).
+  const visible = fields.filter((f) => f.key.toLowerCase().includes(query));
 
   return (
-    <div className="space-y-3">
-      <div>
-        <div className="flex h-9 items-center gap-2 rounded-lg border border-border-strong bg-surface-2 px-2.5">
-          <Search size={13} className="text-text-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Find a field… (${fields.length})`} className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted" />
-        </div>
-        {available.length > 0 ? (
-          <ul className="mt-1 max-h-44 overflow-auto rounded-md border border-border scroll-thin">
-            {available.map((f) => (
-              <li key={f.key}>
-                <button type="button" onClick={() => dispatch({ type: "ADD_CONDITION", field: group, key: f.key, vtype: f.type })} className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm text-text-dim hover:bg-surface-2 hover:text-text">
-                  <span className="flex items-center gap-2 truncate">
-                    <Plus size={12} className="shrink-0 text-text-muted" />
-                    {f.key}
-                  </span>
-                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-text-muted">{f.type}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-1 px-1 text-xs text-text-muted">{query ? "No fields match." : "All fields added."}</p>
-        )}
-      </div>
-
+    <div className="flex items-stretch justify-end gap-1">
+      {/* left card — added editors (only when there are conditions) */}
       {conditions.length > 0 && (
-        <div className="space-y-2 border-t border-border pt-3">
-          {conditions.map((c) => (
-            <div key={c.id} className="rounded-lg border border-border bg-surface-2/30 p-3">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="truncate text-sm font-medium text-text">{c.key}</span>
-                <button type="button" onClick={() => dispatch({ type: "REMOVE_CONDITION", id: c.id })} aria-label={`Remove ${c.key}`} className="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-border-strong hover:text-text">
-                  <X size={14} />
-                </button>
+        <div className={`${CARD} flex w-[300px] shrink-0 flex-col`}>
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Added</span>
+            <span className="text-[10px] tabular-nums text-text-muted">{conditions.length}</span>
+          </div>
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 scroll-thin" style={{ maxHeight: 360 }}>
+            {conditions.map((c) => (
+              <div key={c.id} className="rounded-md border border-border bg-surface-2/30 p-2.5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-medium text-text">{c.key}</span>
+                  <button
+                    type="button"
+                    onClick={() => dispatch({ type: "REMOVE_CONDITION", id: c.id })}
+                    aria-label={`Remove ${c.key}`}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted hover:bg-border-strong hover:text-text"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+                <DynamicEditor cond={c} field={byKey[c.key ?? ""]} group={group} dispatch={dispatch} />
               </div>
-              <DynamicEditor cond={c} field={byKey[c.key ?? ""]} group={group} dispatch={dispatch} />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
+
+      {/* right card — field picker (compact fixed width) */}
+      <div className={`${CARD} flex w-[400px] shrink-0 flex-col p-3`}>
+        <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-text">
+          {group === "postCall" ? <ClipboardList size={13} className="text-text-muted" /> : <Braces size={13} className="text-text-muted" />}
+          {group === "postCall" ? "Post-call analysis" : "Context variables"}
+        </div>
+        <div className="flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-2 px-2.5">
+          <Search size={13} className="text-text-muted" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={`Find a field… (${fields.length})`}
+            className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-muted"
+          />
+        </div>
+        {visible.length > 0 ? (
+          <ul className="mt-2 max-h-[300px] overflow-auto scroll-thin">
+            {visible.map((f) => {
+              const isAdded = added.has(f.key);
+              const existing = conditions.find((c) => c.key === f.key);
+              return (
+                <li key={f.key}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      isAdded && existing
+                        ? dispatch({ type: "REMOVE_CONDITION", id: existing.id })
+                        : dispatch({ type: "ADD_CONDITION", field: group, key: f.key, vtype: f.type })
+                    }
+                    className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                      isAdded ? "bg-surface-2 text-text" : "text-text-dim hover:bg-surface-2/60 hover:text-text"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5 truncate">
+                      <span
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                          isAdded ? "border-white bg-white text-black" : "border-border-strong"
+                        }`}
+                      >
+                        {isAdded && <Check size={11} strokeWidth={3} />}
+                      </span>
+                      <span className="truncate">{f.key}</span>
+                    </span>
+                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-text-muted">{f.type}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-2 px-1 text-xs text-text-muted">No fields match.</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -606,42 +665,70 @@ export function DynamicGroup({
 // Context variables are free-form keys — type the exact key, then configure on the right.
 export function ContextKeyInput({ conditions, dispatch }: { conditions: Condition[]; dispatch: React.Dispatch<FilterAction> }) {
   const [key, setKey] = useState("");
+  const trimmed = key.trim();
+  const duplicate = !!trimmed && conditions.some((c) => c.key === trimmed);
+  const canAdd = !!trimmed && !duplicate;
   const add = () => {
-    const k = key.trim();
-    if (!k || conditions.some((c) => c.key === k)) return;
-    dispatch({ type: "ADD_CONDITION", field: "context", key: k, vtype: "string" });
+    if (!canAdd) return;
+    dispatch({ type: "ADD_CONDITION", field: "context", key: trimmed, vtype: "string" });
     setKey("");
   };
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
-        <input
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
-          placeholder="Type a variable key…"
-          className="h-9 min-w-0 flex-1 rounded-lg border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted focus:border-white"
-        />
-        <button type="button" onClick={add} disabled={!key.trim()} className="flex h-9 items-center gap-1.5 rounded-lg border border-border-strong px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-40">
-          <Plus size={13} /> Add
-        </button>
-      </div>
-      <p className="text-xs text-text-muted">Enter the exact variable key (e.g. order_id). Type and value follow on the right.</p>
+    <div className="flex items-stretch justify-end gap-1">
+      {/* left card — added editors */}
       {conditions.length > 0 && (
-        <div className="space-y-2 border-t border-border pt-3">
-          {conditions.map((c) => (
-            <div key={c.id} className="rounded-lg border border-border bg-surface-2/30 p-3">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="truncate text-sm font-medium text-text">{c.key}</span>
-                <button type="button" onClick={() => dispatch({ type: "REMOVE_CONDITION", id: c.id })} aria-label={`Remove ${c.key}`} className="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-border-strong hover:text-text">
-                  <X size={14} />
-                </button>
+        <div className={`${CARD} flex w-[300px] shrink-0 flex-col`}>
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Added</span>
+            <span className="text-[10px] tabular-nums text-text-muted">{conditions.length}</span>
+          </div>
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2 scroll-thin" style={{ maxHeight: 360 }}>
+            {conditions.map((c) => (
+              <div key={c.id} className="rounded-md border border-border bg-surface-2/30 p-2.5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-medium text-text">{c.key}</span>
+                  <button
+                    type="button"
+                    onClick={() => dispatch({ type: "REMOVE_CONDITION", id: c.id })}
+                    aria-label={`Remove ${c.key}`}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-muted hover:bg-border-strong hover:text-text"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+                <DynamicEditor cond={c} field={undefined} group="context" dispatch={dispatch} />
               </div>
-              <DynamicEditor cond={c} field={undefined} group="context" dispatch={dispatch} />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
+
+      {/* right card — picker */}
+      <div className={`${CARD} flex w-[400px] shrink-0 flex-col p-3`}>
+        <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-text">
+          <Braces size={13} className="text-text-muted" /> Context variables
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+            placeholder="Type a variable key…"
+            className="h-9 min-w-0 flex-1 rounded-md border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted focus:border-white"
+          />
+          <button
+            type="button"
+            onClick={add}
+            disabled={!canAdd}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border-strong px-3 text-sm text-text hover:bg-surface-2 disabled:opacity-40"
+          >
+            <Plus size={13} /> Add
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-text-muted">
+          {duplicate ? `"${trimmed}" is already added.` : "Enter a variable key (e.g. order_id)."}
+        </p>
+      </div>
     </div>
   );
 }
@@ -759,6 +846,32 @@ function NumInput({ value, placeholder, onChange }: { value: number | null; plac
 
 function DateRange({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [from, to] = value.split("|");
+  const hasRange = !!(from && to);
+  const [expanded, setExpanded] = useState(!hasRange);
+  const prevHadRange = useRef(hasRange);
+
+  // Auto-collapse the calendar once a complete range is picked (both ends).
+  useEffect(() => {
+    if (hasRange && !prevHadRange.current) setExpanded(false);
+    prevHadRange.current = hasRange;
+  }, [hasRange]);
+
+  if (!expanded && hasRange) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-surface-2 px-3 py-2 text-sm text-text hover:border-text-dim"
+      >
+        <span className="flex items-center gap-2 truncate">
+          <Calendar size={13} className="shrink-0 text-text-muted" />
+          <span className="truncate">{from} <span className="text-text-muted">→</span> {to}</span>
+        </span>
+        <Pencil size={12} className="shrink-0 text-text-muted" />
+      </button>
+    );
+  }
+
   return (
     <div className="w-full rounded-lg border border-border bg-surface-2/30 p-3">
       <RangeCalendar from={from || null} to={to || null} onChange={(f, t) => onChange(`${f}|${t}`)} />

@@ -144,6 +144,7 @@ export interface AgentSelection {
 export type ConditionField =
   | "agent"
   | "channel"
+  | "direction"
   | "duration"
   | "from"
   | "to"
