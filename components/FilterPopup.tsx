@@ -663,60 +663,72 @@ function DynamicEditor({
   const setMode = (m: MatchMode) => update({ mode: m, values: [], num: { op: "between", value: null, value2: null }, text: "" });
   const specificOptions = field?.values ?? distinctValues(MOCK_CONVERSATIONS, group, cond.key ?? "");
 
+  const op = cond.num?.op ?? "between";
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Select value={mode} onChange={(v) => setMode(v as MatchMode)} options={MODE_OPTS} />
+    <div className="space-y-2.5">
+      {/* row 1 — mode (and operator when numeric) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={mode} onChange={(v) => setMode(v as MatchMode)} options={MODE_OPTS} />
+        {mode === "number" && (
+          <Select
+            value={op}
+            onChange={(o) => update({ num: { op: o as Operator, value: cond.num?.value ?? null, value2: cond.num?.value2 ?? null } })}
+            options={NUM_OPS}
+          />
+        )}
+      </div>
 
+      {/* row 2 — value editor (always full-width) */}
       {mode === "text" && (
-        <>
-          <span className="text-sm text-text-muted">contains</span>
-          <input value={cond.text ?? ""} onChange={(e) => update({ text: e.target.value })} placeholder="value…" className="h-9 min-w-0 flex-1 rounded-lg border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted" />
-        </>
+        <input
+          value={cond.text ?? ""}
+          onChange={(e) => update({ text: e.target.value })}
+          placeholder="contains…"
+          className="h-9 w-full rounded-lg border border-border-strong bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-muted"
+        />
       )}
 
       {mode === "specific" && (
-        <>
-          <span className="text-sm text-text-muted">is any of</span>
-          <div className="w-full">
-            <MultiSelect layout="chips" options={specificOptions.map((v) => ({ value: v, label: v }))} selected={cond.values ?? []} onToggle={(v) => dispatch({ type: "TOGGLE_VALUE", id, value: v })} />
-          </div>
-        </>
+        <MultiSelect
+          layout="chips"
+          options={specificOptions.map((v) => ({ value: v, label: v }))}
+          selected={cond.values ?? []}
+          onToggle={(v) => dispatch({ type: "TOGGLE_VALUE", id, value: v })}
+        />
       )}
 
-      {mode === "number" && (
-        (() => {
-          const op = cond.num?.op ?? "between";
-          if (op === "between") {
-            const { min, max } = numericDomain(MOCK_CONVERSATIONS, group, cond.key ?? "");
-            const step = Math.max(1, Math.round((max - min) / 100));
-            return (
-              <div className="w-full space-y-2">
-                <Select value={op} onChange={(o) => update({ num: { op: o as Operator, value: cond.num?.value ?? null, value2: cond.num?.value2 ?? null } })} options={NUM_OPS} />
-                <RangeSlider min={min} max={max} step={step} value={cond.num ?? null} onChange={(num) => update({ num })} />
-              </div>
-            );
-          }
-          return (
-            <>
-              <Select value={op} onChange={(o) => update({ num: { op: o as Operator, value: cond.num?.value ?? null, value2: cond.num?.value2 ?? null } })} options={NUM_OPS} />
-              <NumInput value={cond.num?.value ?? null} placeholder="value" onChange={(n) => update({ num: { op, value: n, value2: null } })} />
-            </>
-          );
-        })()
+      {mode === "number" && op === "between" && (() => {
+        const { min, max } = numericDomain(MOCK_CONVERSATIONS, group, cond.key ?? "");
+        const step = Math.max(1, Math.round((max - min) / 100));
+        return <RangeSlider min={min} max={max} step={step} value={cond.num ?? null} onChange={(num) => update({ num })} />;
+      })()}
+
+      {mode === "number" && op !== "between" && (
+        <NumInput
+          value={cond.num?.value ?? null}
+          placeholder="value"
+          onChange={(n) => update({ num: { op, value: n, value2: null } })}
+        />
       )}
 
       {mode === "boolean" && (
-        <>
-          <span className="text-sm text-text-muted">is</span>
+        <div className="inline-flex items-center rounded-lg border border-border-strong bg-surface-2 p-0.5">
           {[{ v: "", l: "Any" }, { v: "true", l: "Yes" }, { v: "false", l: "No" }].map((o) => {
             const on = (cond.text ?? "") === o.v;
             return (
-              <button key={o.l} type="button" onClick={() => update({ text: o.v })} className={`h-8 rounded-lg border px-3 text-sm ${on ? "border-text bg-text text-bg" : "border-border-strong text-text-dim hover:text-text"}`}>
+              <button
+                key={o.l}
+                type="button"
+                onClick={() => update({ text: o.v })}
+                className={`h-7 rounded-md px-3 text-xs transition-colors ${
+                  on ? "bg-white text-black shadow-sm" : "text-text-dim hover:text-text"
+                }`}
+              >
                 {o.l}
               </button>
             );
           })}
-        </>
+        </div>
       )}
 
       {mode === "date" && <DateRange value={cond.text ?? ""} onChange={(t) => update({ text: t })} />}
@@ -726,7 +738,7 @@ function DynamicEditor({
 
 function Select<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div className="relative">
+    <div className="relative inline-block">
       <select value={value} onChange={(e) => onChange(e.target.value as T)} className="h-9 appearance-none rounded-lg border border-border-strong bg-surface-2 pl-3 pr-7 text-sm text-text outline-none">
         {options.map((o) => (
           <option key={o.value} value={o.value}>

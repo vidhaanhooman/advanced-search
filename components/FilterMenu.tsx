@@ -2,8 +2,6 @@
 
 import { useRef, useState } from "react";
 import {
-  Sparkles,
-  SlidersHorizontal,
   ChevronRight,
   Phone,
   Bot,
@@ -107,21 +105,6 @@ interface Section {
 }
 
 const SECTIONS: Section[] = [
-  // — special —
-  { items: [
-    {
-      id: "ai",
-      label: "AI filter",
-      icon: <Sparkles size={15} />,
-      onSelect: (_ctx, p) => p.onOpenAdvanced(),
-    },
-    {
-      id: "advanced",
-      label: "Advanced filter",
-      icon: <SlidersHorizontal size={15} />,
-      onSelect: (_ctx, p) => p.onOpenAdvanced(),
-    },
-  ] },
   // — source —
   { items: [
     {

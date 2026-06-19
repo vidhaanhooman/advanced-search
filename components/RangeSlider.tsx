@@ -91,11 +91,11 @@ export function RangeSlider({ min, max, step = 1, unit, value, onChange }: Range
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <div
         ref={trackRef}
         onPointerDown={onTrackDown}
-        className="relative mt-1 h-5 cursor-pointer select-none"
+        className="relative mx-2 h-5 cursor-pointer select-none"
       >
         <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-border-strong" />
         <div
@@ -136,14 +136,14 @@ export function RangeSlider({ min, max, step = 1, unit, value, onChange }: Range
         })}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2">
         <NumBox
           value={value?.value ?? null}
           placeholder={String(min)}
           unit={unit}
           onChange={(n) => emit(n ?? min, hi)}
         />
-        <span className="text-text-muted">—</span>
+        <span className="shrink-0 text-text-muted">—</span>
         <NumBox
           value={value?.value2 ?? null}
           placeholder={String(max)}
@@ -167,16 +167,16 @@ function NumBox({
   onChange: (n: number | null) => void;
 }) {
   return (
-    <div className="flex h-9 flex-1 items-center gap-1 rounded-lg border border-border-strong bg-surface-2 px-3 focus-within:border-white">
+    <div className="flex h-8 min-w-0 flex-1 items-center gap-1 rounded-md border border-border-strong bg-surface-2 px-2 focus-within:border-white">
       <input
         type="number"
         inputMode="numeric"
         value={value ?? ""}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-        className="w-full bg-transparent text-sm text-text outline-none placeholder:text-text-dim"
+        className="min-w-0 flex-1 bg-transparent text-center text-sm text-text outline-none placeholder:text-text-dim"
       />
-      {unit && <span className="text-xs text-text-muted">{unit}</span>}
+      {unit && <span className="shrink-0 text-[10px] uppercase tracking-wide text-text-muted">{unit}</span>}
     </div>
   );
 }
